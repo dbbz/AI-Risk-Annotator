@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "ai-risk-taxonomy"
+version = "0.1.0"
+description = ""
+authors = ["Djalel Benbouzid <coder@dbenbouzid.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.32.0"
+watchdog = "^4.0.0"
+plotly = "^5.19.0"
+beautifulsoup4 = "^4.12.3"
+openpyxl = "^3.1.2"
+st-gsheets-connection = "^0.0.4"
+
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
