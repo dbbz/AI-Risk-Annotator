@@ -111,9 +111,9 @@ for k, v in stakeholders.items():
 # scrapped from the AIAAIC website as they are not in the sheet
 @st.cache_data
 def load_extra_data():
-    with shelve.open("description", "r") as db:
+    with shelve.open("description.db", "r") as db:
         descriptions = dict(db)
-    with shelve.open("links", "r") as db:
+    with shelve.open("links.db", "r") as db:
         links = dict(db)
 
     return descriptions, links
