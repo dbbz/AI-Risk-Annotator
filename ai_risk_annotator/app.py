@@ -160,7 +160,7 @@ if not check_password():
     st.stop()  # Do not continue if check_password is not True.
 
 
-st.title("AI Risk Taxonomy")
+st.title("AI Risk Annotator")
 with st.expander("📖 Instructions"):
     st.markdown("""
     👋🏼  Thank you for taking part in the AI Risk Taxonomy project.

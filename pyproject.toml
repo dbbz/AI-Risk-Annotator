@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ai-risk-taxonomy"
+name = "ai-risk-annotator"
 version = "0.1.0"
 description = ""
 authors = ["Djalel Benbouzid <coder@dbenbouzid.com>"]
