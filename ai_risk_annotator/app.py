@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import shelve
+import pickle
 from streamlit_gsheets import GSheetsConnection
 import datetime
 import hmac
@@ -111,10 +112,18 @@ for k, v in stakeholders.items():
 # scrapped from the AIAAIC website as they are not in the sheet
 @st.cache_data
 def load_extra_data():
-    with shelve.open("description.db", "r") as db:
-        descriptions = dict(db)
-    with shelve.open("links.db", "r") as db:
-        links = dict(db)
+    # with shelve.open("description", "r") as db:
+    #     descriptions = dict(db)
+    #     with open("descriptions.pickle", "wb") as f:
+    #         pickle.dump(descriptions, f)
+    with open("descriptions.pickle", "rb") as f:
+        descriptions = pickle.load(f)
+    # with shelve.open("links", "r") as db:
+    #     links = dict(db)
+    #     with open("links.pickle", "wb") as f:
+    #         pickle.dump(links, f)
+    with open("links.pickle", "rb") as f:
+        links = pickle.load(f)
 
     return descriptions, links
 
