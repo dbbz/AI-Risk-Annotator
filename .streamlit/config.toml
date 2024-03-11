@@ -5,4 +5,4 @@ secondaryBackgroundColor = "#44475a"
 textColor = "#f8f8f2"
 
 [client]
-showSidebarNavigation = false
+showSidebarNavigation = true
