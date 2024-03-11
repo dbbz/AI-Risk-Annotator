@@ -6,6 +6,7 @@ from streamlit_gsheets import GSheetsConnection
 import datetime
 import hmac
 
+st.set_page_config(page_title="AI Harm Annotator", layout="wide")
 # The list of annotators (or the initials thereof)
 annotators = ["CP", "DB", "EP", "JH", "GA", "HP", "LW", "MS", "PN", "TC", "TD", "US"]
 
@@ -169,7 +170,19 @@ if not check_password():
     st.stop()  # Do not continue if check_password is not True.
 
 
-st.title("AI Risk Annotator")
+st.title("✍🏻 AI Harm Annotator")
+
+# Connect to the Google Sheet where to store the answers
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+except Exception as e:
+    st.error("Cannot connect to Google Sheet. Error: " + str(e))
+
+df_taxonomy = (
+    conn.read(worksheet="Taxonomy", ttl=10).dropna(how="all").dropna(how="all", axis=1)
+)
+
+
 with st.expander("📖 Instructions"):
     st.markdown("""
     👋🏼  Thank you for taking part in the AI Risk Taxonomy project.
@@ -178,13 +191,7 @@ with st.expander("📖 Instructions"):
     - Instruction 2
     - ...
     """)
-
-# Connect to the Google Sheet where to store the answers
-try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception as e:
-    st.error("Cannot connect to Google Sheet. Error: " + str(e))
-
+    st.dataframe(df_taxonomy, use_container_width=True, hide_index=True)
 
 with st.container(border=True):
     st.markdown("Your name initials")
@@ -284,18 +291,28 @@ for stakeholder in impacted_stakeholder:
                 label_visibility="collapsed",
                 key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
             )
+            with st.container(border=False):
+                st.markdown("*[Optional] Do you have further notes?*")
+                notes = st.text_area(
+                    "Further notes",
+                    label_visibility="collapsed",
+                    key=f"{incident}__{stakeholder}__{harm_cat}__notes",
+                )
+
             if not harm_subcategory:
                 st.stop()
-            results[stakeholder][harm_cat] = harm_subcategory
+            results[stakeholder][harm_cat] = (harm_subcategory, notes)
+
 
 submitted = st.button("Submit your answers", type="primary", use_container_width=True)
 if submitted:
-    # current_datetime = datetime.datetime.now()
-    current_datetime = datetime.date.today()
-    timestamp = int(datetime.datetime.now().timestamp())
+    current_datetime = datetime.datetime.now()
+    timestamp = int(current_datetime.timestamp())
+    current_datetime = current_datetime.strftime("%Y-%m-%d")
+
     tabular_results = []
     for stakeholder, harm in results.items():
-        for harm_cat, harm_subcat_list in harm.items():
+        for harm_cat, (harm_subcat_list, notes) in harm.items():
             for harm_subcat in harm_subcat_list:
                 tabular_results.append(
                     [
@@ -305,6 +322,7 @@ if submitted:
                         stakeholder,
                         harm_cat,
                         harm_subcat,
+                        notes,
                         timestamp,
                     ]
                 )
@@ -316,6 +334,7 @@ if submitted:
         "stakeholders",
         "harm_category",
         "harm_subcategory",
+        "notes",
         "timestamp",
     ]
     df_update = pd.DataFrame(data=tabular_results, columns=columns)
