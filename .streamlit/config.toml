@@ -1,8 +1,20 @@
 [theme]
-primaryColor = "#bd93f9"
-backgroundColor = "#282a36"
-secondaryBackgroundColor = "#44475a"
-textColor = "#f8f8f2"
+# primaryColor = "#bd93f9"
+# backgroundColor = "#282a36"
+# secondaryBackgroundColor = "#44475a"
+# textColor = "#f8f8f2"
+
+primaryColor = "#1663a6"
+backgroundColor = "#f0f0f5"
+secondaryBackgroundColor = "#e0e0ef"
+textColor = "#262730"
+font = "sans serif"
+
+# primaryColor = "#6eb52f"
+# backgroundColor = "#f0f0f5"
+# secondaryBackgroundColor = "#e0e0ef"
+# textColor = "#262730"
+# font = "sans serif"
 
 [client]
-showSidebarNavigation = true
+showSidebarNavigation = false
