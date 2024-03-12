@@ -7,6 +7,12 @@ import datetime
 import hmac
 
 
+st.set_page_config(page_title="AI Harm Annotator", layout="wide")
+
+
+st.sidebar.page_link("app.py", label="Annotator", icon="✍🏻")
+st.sidebar.page_link("pages/analysis.py", label="Results", icon="📈")
+
 st.title("Agreement calculation")
 
 # Connect to the Google Sheet where to store the answers
@@ -36,3 +42,10 @@ url = f"https://docs.google.com/spreadsheets/d/{AIAAIC_SHEET_ID}/gviz/tq?tqx=out
 df_ = pd.read_csv(url, skip_blank_lines=True).dropna(how="all")
 
 st.write(df_)
+
+with st.spinner("Reading from Google Sheet..."):
+    df = conn.read(
+        worksheet="Annotations", ttl=0, usecols=columns, date_formatstr="%Y-%m-%d"
+    ).dropna()
+
+st.dataframe(df, use_container_width=True)

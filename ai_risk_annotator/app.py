@@ -13,6 +13,10 @@ from streamlit_markmap import markmap
 from markdownify import markdownify
 
 st.set_page_config(page_title="AI Harm Annotator", layout="wide")
+
+# st.sidebar.page_link("app.py", label="Annotator", icon="✍🏻")
+# st.sidebar.page_link("pages/analysis.py", label="Results", icon="📈")
+
 # The list of annotators (or the initials thereof)
 annotators = ["CP", "DB", "EP", "JH", "GA", "HP", "LW", "MS", "PN", "TC", "TD", "US"]
 
@@ -425,12 +429,17 @@ for stakeholder in impacted_stakeholder:
             st.stop()
         results[stakeholder][harm_cat] = (harm_subcategory, notes)
 
-
-submitted = st.button("Submit your answers", type="primary", use_container_width=True)
+# st.info(f"""**Recap**: User: {user} | Incident: {incident}""")
+submitted = st.button(
+    f"Submit your answers | User: **{user}**",
+    type="primary",
+    use_container_width=True,
+)
 if submitted:
     current_datetime = datetime.datetime.now()
     timestamp = int(current_datetime.timestamp())
-    current_datetime = current_datetime.strftime("%Y-%m-%d")
+    date_format = "%Y-%m-%d"
+    current_datetime = current_datetime.strftime(date_format)
 
     tabular_results = []
     for stakeholder, harm in results.items():
@@ -462,12 +471,27 @@ if submitted:
     df_update = pd.DataFrame(data=tabular_results, columns=columns)
 
     with st.spinner("Writing to Google Sheet..."):
-        df = conn.read(worksheet="Annotations", ttl=0, usecols=columns).dropna()
+        df = conn.read(
+            worksheet="Annotations", ttl=0, usecols=columns, date_formatstr="%Y-%m-%d"
+        ).dropna()
         df = pd.concat([df, df_update], ignore_index=True)
         conn.update(worksheet="Annotations", data=df)
+        try:
+            user_worksheet_name = "user_" + user
+            df_backup = conn.read(
+                worksheet=user_worksheet_name, data=df_update, date_formatstr="%Y-%m-%d"
+            )
+        except:
+            df_backup = conn.create(worksheet=user_worksheet_name, data=df_update)
+        else:
+            df_backup = conn.update(
+                worksheet=user_worksheet_name,
+                data=pd.concat([df_backup, df_update], ignore_index=True),
+            )
 
     st.balloons()
-    st.toast("Your answers were submitted.")
-    st.toast("You can select another incident to annotate.")
+    st.toast(
+        "Your answers were submitted. You can select another incident to annotate."
+    )
 
     # Clear cache?
