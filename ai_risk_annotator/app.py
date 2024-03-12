@@ -279,6 +279,7 @@ markmap:
 
     st.markdown("#### Overview of the AI Harm Taxonomy")
     markmap(taxonomy_mindmap)
+
     # st.dataframe(df_taxonomy, use_container_width=True, hide_index=True)
 
 with st.container(border=True):
@@ -296,7 +297,7 @@ with st.container(border=True):
     with open("shortlist.txt", "r") as f:
         incidents_list = [line.strip() for line in f.readlines()]
         incidents_list = set(incidents_list) & set(repository.index)
-        incidents_list = list(incidents_list)
+        incidents_list = sorted(list(incidents_list), reverse=True)
 
     if not incidents_list:
         # User the URL parameters to filter the incidents
@@ -307,9 +308,9 @@ with st.container(border=True):
         filtered_incidents = st.query_params.get_all("id")
         if filtered_incidents and set(repository.index) & set(filtered_incidents):
             incidents_list = set(repository.index) & set(filtered_incidents)
-            incidents_list = list(filtered_incidents)
+            incidents_list = sorted(list(filtered_incidents), reverse=True)
         else:
-            incidents_list = list(repository.index)
+            incidents_list = sorted(list(repository.index), reverse=True)
 
     st.markdown("Select an incident")
     incident = st.selectbox(
@@ -336,7 +337,7 @@ with st.container(border=True):
     #     st.write("\n".join(map(lambda x: "- " + x, links[incident])))
     # else:
 
-    st.write(get_list_of_media_links(incident_page))
+    st.warning(get_list_of_media_links(incident_page))
 
     st.link_button(
         "Go to the incident page",
@@ -374,7 +375,7 @@ for stakeholder in impacted_stakeholder:
     harm_category_section = st.container(border=True)
     with harm_category_section:
         st.markdown(
-            f"What :violet[category] of harm impacts `{stakeholder}`? *(multiple options are possible)*",
+            f"What :violet[category] of harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
             help="Stated actual negative impact(s) of incident/issue",
         )
         harm_category = st.multiselect(
@@ -396,7 +397,7 @@ for stakeholder in impacted_stakeholder:
     for harm_cat in harm_category:
         with harm_category_section:
             st.markdown(
-                f"What :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
+                f"What :orange[specific] **`{harm_cat}`** harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
                 help="Stated specific negative impact(s) of incident/issue",
             )
             harm_subcategory = st.multiselect(
