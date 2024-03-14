@@ -7,12 +7,11 @@ import pandas as pd
 import streamlit as st
 from nltk import agreement
 from streamlit_gsheets import GSheetsConnection
+from utils import create_side_menu, columns
 
 st.set_page_config(page_title="AI Harm Annotator", layout="wide")
 
-
-st.sidebar.page_link("app.py", label="Annotator", icon="✍🏻")
-st.sidebar.page_link("pages/results.py", label="Results", icon="📈")
+create_side_menu()
 
 st.markdown("# 📈")
 st.markdown("""### Results""")
@@ -23,16 +22,6 @@ try:
 except Exception as e:
     st.error("Cannot connect to Google Sheet. Error: " + str(e))
 
-columns = [
-    "datatime",
-    "annotator",
-    "incident_ID",
-    "stakeholders",
-    "harm_category",
-    "harm_subcategory",
-    "notes",
-    "timestamp",
-]
 
 with st.spinner("Reading from Google Sheet..."):
     df_results = conn.read(
@@ -44,15 +33,8 @@ st.dataframe(df_results, use_container_width=True)
 
 with st.sidebar:
     st.divider()
-    st.link_button(
-        "Link to the Google Sheet",
-        "https://docs.google.com/spreadsheets/d/1PNOVdoyNekDs1Ht6YPhK83gxRk5OyOJtWEZDSA3FoXA/edit#gid=1126113759",
-        use_container_width=True,
-    )
     if st.button("Refresh results", use_container_width=True):
         st.rerun()
-
-st.markdown("### Agreement analysis")
 
 
 def preprocess_data(df):
@@ -122,25 +104,26 @@ def format_annots(df):
     return annots
 
 
-if df_results.annotator.unique().size < 2:
-    st.info("The agreement analysis requires more than one annotator.")
+try:
+    data_dict = preprocess_data(df_results)
+
+    df_stakeholder = get_df(data_dict, "stakeholder")
+    annots_stakeholder = format_annots(df_stakeholder)
+    task_stakeholder = agreement.AnnotationTask()
+    task_stakeholder.load_array(annots_stakeholder)
+    alpha_stakeholder = task_stakeholder.alpha()
+
+    df_harm = get_df(data_dict, "harm")
+    annots_harm = format_annots(df_harm)
+    task_harm = agreement.AnnotationTask()
+    task_harm.load_array(annots_harm)
+    alpha_harm = task_harm.alpha()
+except:
+    st.info("The agreement analysis requires more than annotations.")
     st.stop()
-data_dict = preprocess_data(df_results)
 
-df = get_df(data_dict, "stakeholder")
-annots = format_annots(df)
-task = agreement.AnnotationTask()
-task.load_array(annots)
-
+st.markdown("### Agreement analysis")
 st.markdown("Krippendorf's alpha for agreement")
-
 col_1, col_2 = st.columns(2)
-col_1.metric("on stakeholders", f"{task.alpha():.3f}")
-
-
-df = get_df(data_dict, "harm")
-annots = format_annots(df)
-task = agreement.AnnotationTask()
-task.load_array(annots)
-# st.write("Krippendorf's alpha for agreement on Actual Harms: {}".format(task.alpha()))
-col_2.metric("on actual harm", f"{task.alpha():.3f}")
+col_1.metric("on stakeholders", f"{alpha_stakeholder:.3f}")
+col_2.metric("on actual harm", f"{alpha_harm:.3f}")
