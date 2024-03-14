@@ -133,6 +133,45 @@ stakeholders = {
 }
 
 
+harm_categories_descriptions = {
+    "Autonomy": {
+        "description": "Loss of or restrictions to the ability or rights of an individual, group or entity to make decisions and control their identity",
+        "subcategories": [],
+    },
+    "Physical": {
+        "description": "Physical injury to an individual or group, or damage to physical property",
+        "subcategories": [],
+    },
+    "Emotional & psychological": {
+        "description": "Direct or indirect impairment of the emotional and psychological mental health of an individual, organisation, or society",
+        "subcategories": [],
+    },
+    "Reputational": {
+        "description": "Damage to the reputation of an individual, group or organisation ",
+        "subcategories": [],
+    },
+    "Financial & business": {
+        "description": "Use or misuse of a technology system in a manner that damages the financial interests of an individual or group, or which causes strategic, operational, legal or financial harm to a business or other organisation",
+        "subcategories": [],
+    },
+    "Human rights & civil liberties": {
+        "description": "Use or misuse of a technology system in a manner that compromises fundamental human rights and freedoms",
+        "subcategories": [],
+    },
+    "Societal & cultural": {
+        "description": "Harms affecting the functioning of societies, communities and economies caused directly or indirectly by the use or misuse technology systems",
+        "subcategories": [],
+    },
+    "Political & economic": {
+        "description": "Manipulation of political beliefs, damage to political institutions and the effective delivery of government services",
+        "subcategories": [],
+    },
+    "Environmental": {
+        "description": "Damage to the environment directly or indirectly caused by a technology system or set of systems",
+        "subcategories": [],
+    },
+    # "Other": {"description": "", "subcategories": []},
+}
 # The list of harm categories and sub-categories
 harm_categories = {
     "Autonomy": [

@@ -16,6 +16,7 @@ from utils import (
     harm_categories,
     stakeholders,
     switch_page,
+    harm_categories_descriptions,
 )
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
@@ -235,11 +236,11 @@ with st.container(border=True):
     for k, v in stakeholders.items():
         stakeholders_help_text += f"- **{k}**: {v}\n"
 
-    # st.markdown(
-    #     "Who are the impacted stakeholders? *(multiple options are possible)*",
-    #     help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
-    #     + stakeholders_help_text,
-    # )
+    st.markdown(
+        "Who are the impacted stakeholders? *(multiple options are possible)*",
+        help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
+        + stakeholders_help_text,
+    )
 
     st.caption(stakeholders_help_text)
     impacted_stakeholder = st.multiselect(
@@ -264,10 +265,16 @@ for stakeholder in impacted_stakeholder:
     results[stakeholder] = {}
     harm_category_section = st.container(border=True)
     with harm_category_section:
+        harm_category_help_text = ""
+        for k, v in harm_categories_descriptions.items():
+            harm_category_help_text += f"- **{k}**: {v["description"]}\n"
+
         st.markdown(
             f"What :violet[category] of harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
-            help="Stated actual negative impact(s) of incident/issue",
+            help=harm_category_help_text,
         )
+        st.caption(harm_category_help_text)
+
         harm_category = st.multiselect(
             "harm_category",
             harm_categories.keys(),
@@ -288,7 +295,7 @@ for stakeholder in impacted_stakeholder:
         with harm_category_section:
             st.markdown(
                 f"What :orange[specific] **`{harm_cat}`** harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
-                help="Stated specific negative impact(s) of incident/issue",
+                # help="Stated specific negative impact(s) of incident/issue",
             )
             harm_subcategory = st.multiselect(
                 "harm_subcategory",
