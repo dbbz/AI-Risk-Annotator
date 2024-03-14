@@ -9,7 +9,16 @@ import streamlit as st
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 from streamlit_gsheets import GSheetsConnection
-from utils import create_side_menu, columns, harm_categories, annotators, stakeholders
+from utils import (
+    create_side_menu,
+    columns,
+    harm_categories,
+    annotators,
+    stakeholders,
+    switch_page,
+)
+
+from time import sleep
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
 create_side_menu()
@@ -145,13 +154,19 @@ except Exception as e:
     st.error("Cannot connect to Google Sheet. Error: " + str(e))
 
 with st.container(border=False):
+    current_user = st.session_state.get("current_user", None)
     st.markdown("Your name initials")
     user = st.selectbox(
-        "annotator", options=annotators, index=None, label_visibility="collapsed"
+        "annotator",
+        options=annotators,
+        index=annotators.index(current_user),
+        label_visibility="collapsed",
     )
 
     if not user:
         st.stop()
+
+    st.session_state.current_user = user
 
     repository = read_incidents_repository_from_file()
     descriptions, links = load_extra_data()
@@ -175,11 +190,20 @@ with st.container(border=False):
             incidents_list = sorted(list(repository.index), reverse=True)
 
     st.markdown("Select an incident")
+
+    current_incident_position = st.session_state.get("current_incident_position", None)
+    if current_incident_position is not None and st.session_state.get(
+        "form_submitted", False
+    ):
+        current_incident_position += 1
+        current_incident_position %= len(incidents_list)
+        st.session_state.form_submitted = False
+
     if len(incidents_list) < 8:
         incident = st.radio(
             "incident",
             options=incidents_list,
-            index=None,
+            index=current_incident_position,
             label_visibility="collapsed",
             horizontal=True,
         )
@@ -187,11 +211,12 @@ with st.container(border=False):
         incident = st.selectbox(
             "incident",
             options=incidents_list,
-            index=None,
+            index=current_incident_position,
             label_visibility="collapsed",
         )
     if not incident:
         st.stop()
+    st.session_state.current_incident_position = incidents_list.index(incident)
 
 # st.markdown("#### Incident description")
 st.divider()
@@ -369,9 +394,11 @@ if submitted:
                 data=pd.concat([df_backup, df_update], ignore_index=True),
             )
 
-    st.balloons()
     st.toast(
         "Your answers were submitted. You can select another incident to annotate."
     )
+    st.balloons()
 
-    # Clear cache?
+    st.session_state.form_submitted = True
+    # st.rerun()
+    switch_page("thanks")
