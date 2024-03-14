@@ -285,6 +285,16 @@ for stakeholder in impacted_stakeholder:
                 label_visibility="collapsed",
                 key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
             )
+
+            st.markdown(f"Is the `{harm_cat}` harm actual of potential?")
+            harm_type = st.selectbox(
+                "incident_type",
+                ["Actual", "Potential"],
+                index=None,
+                key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
+                label_visibility="collapsed",
+            )
+
             with st.container(border=False):
                 st.markdown("*[Optional] Notes*")
                 notes = st.text_area(
@@ -294,7 +304,7 @@ for stakeholder in impacted_stakeholder:
                     key=f"{incident}__{stakeholder}__{harm_cat}__notes",
                 )
 
-        if not harm_subcategory:
+        if not harm_subcategory or not harm_type:
             submitted = st.button(
                 f"Annotator: **{user}** | Submit your answers",
                 type="primary",
@@ -302,7 +312,7 @@ for stakeholder in impacted_stakeholder:
                 disabled=True,
             )
             st.stop()
-        results[stakeholder][harm_cat] = (harm_subcategory, notes)
+        results[stakeholder][harm_cat] = (harm_subcategory, notes, harm_type)
 
 # st.info(f"""**Recap**: User: {user} | Incident: {incident}""")
 submitted = st.button(
@@ -318,7 +328,7 @@ if submitted:
 
     tabular_results = []
     for stakeholder, harm in results.items():
-        for harm_cat, (harm_subcat_list, notes) in harm.items():
+        for harm_cat, (harm_subcat_list, notes, harm_type) in harm.items():
             for harm_subcat in harm_subcat_list:
                 tabular_results.append(
                     [
@@ -328,6 +338,7 @@ if submitted:
                         stakeholder,
                         harm_cat,
                         harm_subcat,
+                        harm_type,
                         notes,
                         timestamp,
                     ]

@@ -17,6 +17,7 @@ columns = [
     "stakeholders",
     "harm_category",
     "harm_subcategory",
+    "harm_type",
     "notes",
     "timestamp",
 ]
