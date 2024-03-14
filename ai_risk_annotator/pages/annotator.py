@@ -267,7 +267,7 @@ for stakeholder in impacted_stakeholder:
     with harm_category_section:
         harm_category_help_text = ""
         for k, v in harm_categories_descriptions.items():
-            harm_category_help_text += f"- **{k}**: {v["description"]}\n"
+            harm_category_help_text += f"- **{k}**: {v['description']}\n"
 
         st.markdown(
             f"What :violet[category] of harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
