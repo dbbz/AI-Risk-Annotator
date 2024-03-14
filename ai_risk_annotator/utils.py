@@ -1,4 +1,7 @@
+import hmac
+
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 
 
 def create_side_menu():
@@ -41,8 +44,33 @@ def switch_page(page_name: str):
     raise ValueError(f"Could not find page {page_name}. Must be one of {page_names}")
 
 
+# Password protect to avoid annotation vandalism
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if the password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show input for password.
+    st.text_input(
+        "Password", type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state:
+        st.error("😕 Password incorrect")
+    return False
+
+
 columns = [
-    "datatime",
+    "datetime",
     "annotator",
     "incident_ID",
     "stakeholders",
@@ -55,22 +83,42 @@ columns = [
 
 
 # The list of annotators (or the initials thereof)
-annotators = [
-    "CP",
-    "DB",
-    "EP",
-    "JH",
-    "GA",
-    "HP",
-    "JK",
-    "LW",
-    "MS",
-    "PG",
-    "PN",
-    "TC",
-    "TD",
-    "US",
-]
+@st.cache_data
+def get_annotators():
+    try:
+        conn = st.connection("gsheets", type=GSheetsConnection)
+    except Exception as e:
+        st.error("Cannot connect to Google Sheet. Error: " + str(e))
+        annotators = [
+            "CP",
+            "DB",
+            "EP",
+            "JH",
+            "GA",
+            "HP",
+            "JK",
+            "LW",
+            "MS",
+            "PG",
+            "PN",
+            "TC",
+            "TD",
+            "US",
+        ]
+    else:
+        with st.spinner("Reading from Google Sheet..."):
+            df_annotators = (
+                conn.read(
+                    worksheet="Annotators",
+                    ttl=0,
+                    usecols=[0],
+                )
+                .dropna(how="all", axis=0)
+                .dropna(how="all", axis=1)
+            )
+            annotators = df_annotators["Annotators"].to_list()
+    return annotators
+
 
 # The list of impacted stakeholders
 stakeholders = {

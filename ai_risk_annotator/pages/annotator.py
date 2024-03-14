@@ -1,5 +1,4 @@
 import datetime
-import hmac
 import pickle
 import re
 
@@ -10,15 +9,14 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 from streamlit_gsheets import GSheetsConnection
 from utils import (
-    create_side_menu,
+    check_password,
     columns,
+    create_side_menu,
+    get_annotators,
     harm_categories,
-    annotators,
     stakeholders,
     switch_page,
 )
-
-from time import sleep
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
 create_side_menu()
@@ -115,37 +113,11 @@ def get_list_of_media_links(page_url):
         return ""
 
 
-# Password protect to avoid annotation vandalism
-def check_password():
-    """Returns `True` if the user had the correct password."""
-
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
-            st.session_state["password_correct"] = True
-            del st.session_state["password"]  # Don't store the password.
-        else:
-            st.session_state["password_correct"] = False
-
-    # Return True if the password is validated.
-    if st.session_state.get("password_correct", False):
-        return True
-
-    # Show input for password.
-    st.text_input(
-        "Password", type="password", on_change=password_entered, key="password"
-    )
-    if "password_correct" in st.session_state:
-        st.error("😕 Password incorrect")
-    return False
-
+st.markdown("# ✍🏻 ")
+st.markdown("### Annotations")
 
 if not check_password():
     st.stop()
-
-
-st.markdown("# ✍🏻 ")
-st.markdown("### Annotations")
 
 # Connect to the Google Sheet where to store the answers
 try:
@@ -154,12 +126,16 @@ except Exception as e:
     st.error("Cannot connect to Google Sheet. Error: " + str(e))
 
 with st.container(border=False):
+    annotators = get_annotators()
     current_user = st.session_state.get("current_user", None)
+    current_user_position = (
+        annotators.index(current_user) if current_user is not None else None
+    )
     st.markdown("Your name initials")
     user = st.selectbox(
         "annotator",
         options=annotators,
-        index=annotators.index(current_user),
+        index=current_user_position,
         label_visibility="collapsed",
     )
 
@@ -171,8 +147,18 @@ with st.container(border=False):
     repository = read_incidents_repository_from_file()
     descriptions, links = load_extra_data()
 
-    with open("shortlist.txt", "r") as f:
-        incidents_list = [line.strip() for line in f.readlines()]
+    with st.spinner("Reading from Google Sheet..."):
+        df_shortlist = (
+            conn.read(worksheet="Batches", zxttl=0)
+            .dropna(how="all", axis=0)
+            .dropna(how="all", axis=1)
+        )
+        df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
+
+        incidents_list = df_shortlist.to_list()
+
+        # with open("shortlist.txt", "r") as f:
+        # incidents_list = [line.strip() for line in f.readlines()]
         incidents_list = set(incidents_list) & set(repository.index)
         incidents_list = sorted(list(incidents_list), reverse=True)
 
@@ -249,11 +235,12 @@ with st.container(border=True):
     for k, v in stakeholders.items():
         stakeholders_help_text += f"- **{k}**: {v}\n"
 
-    st.markdown(
-        "Who are the impacted stakeholders? *(multiple options are possible)*",
-        help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
-        + stakeholders_help_text,
-    )
+    # st.markdown(
+    #     "Who are the impacted stakeholders? *(multiple options are possible)*",
+    #     help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
+    #     + stakeholders_help_text,
+    # )
+
     st.caption(stakeholders_help_text)
     impacted_stakeholder = st.multiselect(
         "impacted_stakeholders",
@@ -376,16 +363,31 @@ if submitted:
     df_update = pd.DataFrame(data=tabular_results, columns=columns)
 
     with st.spinner("Writing to Google Sheet..."):
-        df = conn.read(
-            worksheet="Annotations", ttl=0, usecols=columns, date_formatstr="%Y-%m-%d"
-        ).dropna(how="all")
+        df = (
+            conn.read(
+                worksheet="Annotations",
+                ttl=0,
+                usecols=columns,
+                date_formatstr="%Y-%m-%d",
+            )
+            .dropna(how="all", axis=0)
+            .dropna(how="all", axis=1)
+        )
+
         df = pd.concat([df, df_update], ignore_index=True)
         conn.update(worksheet="Annotations", data=df)
         try:
             user_worksheet_name = "user_" + user
-            df_backup = conn.read(
-                worksheet=user_worksheet_name, data=df_update, date_formatstr="%Y-%m-%d"
-            ).dropna(how="all")
+            df_backup = (
+                conn.read(
+                    worksheet=user_worksheet_name,
+                    data=df_update,
+                    date_formatstr="%Y-%m-%d",
+                )
+                .dropna(how="all", axis=0)
+                .dropna(how="all", axis=1)
+            )
+
         except:
             conn.create(worksheet=user_worksheet_name, data=df_update)
         else:

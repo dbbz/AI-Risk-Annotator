@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_markmap import markmap
-from utils import create_side_menu, columns, harm_categories
+from utils import check_password, create_side_menu, harm_categories
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="centered")
 
@@ -33,6 +33,7 @@ st.markdown("""
     7. Repeat steps 5 & 6 for additional stakeholder types
     """)
 
+
 st.info(
     "The form is only valid if all the qustions are answered. In case of ambiguity, select the most appropriate answer and use the optional `Notes` field.",
     icon="ℹ️",
@@ -43,6 +44,8 @@ st.info(
     icon="🎈",
 )
 
+if not check_password():
+    st.stop()
 
 st.page_link(
     "https://docs.google.com/document/d/1QxXMWA9na4Sf3hQpQXYI2vBtRIpP8hOE7S_3MDck0N4/edit",
