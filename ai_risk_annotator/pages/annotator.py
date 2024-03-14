@@ -294,6 +294,10 @@ for stakeholder in impacted_stakeholder:
                 key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
                 label_visibility="collapsed",
             )
+            st.caption("""
+            - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+            - _Potential harm_ - **a negative impact mentioned as being possible or likely but which is not recorded as having occurred** in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+            """)
 
             with st.container(border=False):
                 st.markdown("*[Optional] Notes*")
