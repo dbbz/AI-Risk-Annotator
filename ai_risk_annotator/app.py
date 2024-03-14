@@ -12,7 +12,8 @@ from streamlit_gsheets import GSheetsConnection
 from streamlit_markmap import markmap
 from markdownify import markdownify
 
-st.set_page_config(page_title="AI Harm Annotator", layout="wide")
+
+st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
 
 # st.sidebar.page_link("app.py", label="Annotator", icon="✍🏻")
 # st.sidebar.page_link("pages/analysis.py", label="Results", icon="📈")
@@ -255,20 +256,41 @@ try:
 except Exception as e:
     st.error("Cannot connect to Google Sheet. Error: " + str(e))
 
-# df_taxonomy = (
-#     conn.read(worksheet="Taxonomy", ttl=10).dropna(how="all").dropna(how="all", axis=1)
-# )
-
 
 with st.expander("📖 Instructions", expanded=False):
     st.markdown("""
-    👋🏼  Thank you for taking part in the AI Risk Taxonomy project.
+    ### 👋🏼  Thank you for taking part in AIAAIC's Harms Taxonomy project
 
-    - Instruction 1
-    - Instruction 2
-    - ...
+    #### Definitions
+    Bear in mind the following terms when annotating incidents/issues:
+    - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+    - _Potential harm_ - **a negative impact mentioned as being possible or likely but which is not recorded as having occurred** in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+    - Stakeholder - external (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system.
+
+    #### Methodology
+    Use the following process when annotating incident/issues:
+    1. Select your name initials (eg. CP)
+    2. Select incident/issue (eg. AIAAIC1372)
+    3. Identify and select harmed stakeholder(s)
+    4. Identify and select harm category(ies) per stakeholder type
+    5. Identify and select harm type(s) per stakeholder type
+    6. Record missing, overlapping or unclear harm type names or definitions
+    7. Repeat steps 5 & 6 for additional stakeholder types
     """)
 
+    st.info(
+        "The form is only valid if all the qustions are answered. In case of ambiguity, select the most appropriate answer and use the optional `Notes` field.",
+        icon="ℹ️",
+    )
+
+    st.link_button(
+        "Stakeholders definitions",
+        "https://docs.google.com/document/d/1QxXMWA9na4Sf3hQpQXYI2vBtRIpP8hOE7S_3MDck0N4/edit",
+    )
+    st.link_button(
+        "Stakeholders definitions",
+        "https://docs.google.com/document/d/1pQjNyAbvtelHqrN6Rz4TlixOak6eSJzkKUAGN30V8bo/edit",
+    )
     taxonomy_mindmap = """
 ---
 markmap:
@@ -281,10 +303,9 @@ markmap:
         for i in v:
             taxonomy_mindmap += f"### {i}\n"
 
-    st.markdown("#### Overview of the AI Harm Taxonomy")
+    st.markdown("#### Harms taxonomy overview")
     markmap(taxonomy_mindmap)
 
-    # st.dataframe(df_taxonomy, use_container_width=True, hide_index=True)
 
 with st.container(border=True):
     st.markdown("Your name initials")
@@ -317,12 +338,21 @@ with st.container(border=True):
             incidents_list = sorted(list(repository.index), reverse=True)
 
     st.markdown("Select an incident")
-    incident = st.selectbox(
-        "incident",
-        options=incidents_list,
-        index=None,
-        label_visibility="collapsed",
-    )
+    if len(incidents_list) < 8:
+        incident = st.radio(
+            "incident",
+            options=incidents_list,
+            index=None,
+            label_visibility="collapsed",
+            horizontal=True,
+        )
+    else:
+        incident = st.selectbox(
+            "incident",
+            options=incidents_list,
+            index=None,
+            label_visibility="collapsed",
+        )
     if not incident:
         st.stop()
 
@@ -353,9 +383,10 @@ st.markdown("#### Annotations")
 with st.container(border=True):
     st.markdown(
         "Who are the impacted stakeholders? *(multiple options are possible)*",
-        help="Stakeholders directly or indirectly impacted by incident/issue. \n"
+        help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
         + stakeholders_help_text,
     )
+    st.caption(stakeholders_help_text)
     impacted_stakeholder = st.multiselect(
         "impacted_stakeholders",
         stakeholders.keys(),
@@ -412,9 +443,10 @@ for stakeholder in impacted_stakeholder:
                 key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
             )
             with st.container(border=False):
-                st.markdown("*[Optional] Do you have further notes?*")
+                st.markdown("*[Optional] Notes*")
                 notes = st.text_area(
                     "Further notes",
+                    placeholder="E.g. missing, overlapping or unclear harm type names or definitions.",
                     label_visibility="collapsed",
                     key=f"{incident}__{stakeholder}__{harm_cat}__notes",
                 )
