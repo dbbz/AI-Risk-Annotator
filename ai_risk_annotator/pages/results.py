@@ -47,8 +47,8 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-    min_date = df_results.datetime.min().date()
-    max_date = df_results.datetime.max().date()
+    min_date = df_results.datetime.min().date() - pd.Timedelta(days=1)
+    max_date = df_results.datetime.max().date() + pd.Timedelta(days=1)
     selected_dates = st.slider(
         "Timeline",
         min_value=min_date,
