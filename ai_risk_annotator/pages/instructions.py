@@ -6,7 +6,7 @@ st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="cente
 
 st.sidebar.page_link("app.py", label="Annotator", icon="✍🏻")
 st.sidebar.page_link("pages/instructions.py", label="Instructions", icon="📖")
-# st.sidebar.page_link("pages/analysis.py", label="Results", icon="📈")
+# st.sidebar.page_link("pages/results.py", label="Results", icon="📈")
 
 # The list of harm categories and sub-categories
 harm_categories = {
@@ -114,12 +114,17 @@ st.info(
     icon="ℹ️",
 )
 
-st.link_button(
+(
+    col_1,
+    col_2,
+    *_,
+) = st.columns(3)
+col_1.link_button(
     "Stakeholders definitions",
     "https://docs.google.com/document/d/1QxXMWA9na4Sf3hQpQXYI2vBtRIpP8hOE7S_3MDck0N4/edit",
 )
-st.link_button(
-    "Stakeholders definitions",
+col_2.link_button(
+    "Harm definitions",
     "https://docs.google.com/document/d/1pQjNyAbvtelHqrN6Rz4TlixOak6eSJzkKUAGN30V8bo/edit",
 )
 taxonomy_mindmap = """
@@ -144,3 +149,7 @@ components.iframe(
 
 st.markdown("#### Harms taxonomy overview")
 markmap(taxonomy_mindmap)
+
+st.page_link(
+    "app.py", label="Off to the annotator", icon="✍🏻", use_container_width=True
+)

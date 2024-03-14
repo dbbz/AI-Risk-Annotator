@@ -16,7 +16,7 @@ from markdownify import markdownify
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
 
 # st.sidebar.page_link("app.py", label="Annotator", icon="✍🏻")
-# st.sidebar.page_link("pages/analysis.py", label="Results", icon="📈")
+# st.sidebar.page_link("pages/results.py", label="Results", icon="📈")
 
 # The list of annotators (or the initials thereof)
 annotators = ["CP", "DB", "EP", "JH", "GA", "HP", "LW", "MS", "PN", "TC", "TD", "US"]
