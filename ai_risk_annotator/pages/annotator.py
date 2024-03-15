@@ -186,7 +186,7 @@ with st.container(border=False):
         current_incident_position %= len(incidents_list)
         st.session_state.form_submitted = False
 
-    if len(incidents_list) < 8:
+    if len(incidents_list) <= 10:
         incident = st.radio(
             "incident",
             options=incidents_list,
