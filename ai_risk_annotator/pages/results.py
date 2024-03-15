@@ -103,9 +103,9 @@ def plot_counts(df, column):
 
 
 tabs_list = ["Stakeholders", "Harm category", "Harm subcategory", "Harm type"]
-tabs = st.tabs(tabs_list)
+tabs = st.tabs(["Sankey"] + tabs_list)
 for i, t in enumerate(tabs_list):
-    with tabs[i]:
+    with tabs[i + 1]:
         plot_counts(df_results, t.lower().replace(" ", "_"))
 
 # ------- sankey  --------
@@ -193,7 +193,9 @@ fig.update_layout(
     font_color="blue",
     # font_size=14,
 )
-st.plotly_chart(fig, use_container_width=True)
+
+with tabs[0]:
+    st.plotly_chart(fig, use_container_width=True)
 
 # ------- agreement --------
 
