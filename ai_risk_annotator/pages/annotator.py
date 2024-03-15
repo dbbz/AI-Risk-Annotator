@@ -190,7 +190,7 @@ with st.container(border=False):
         incident = st.radio(
             "incident",
             options=incidents_list,
-            index=current_incident_position,
+            index=None,
             label_visibility="collapsed",
             horizontal=True,
         )
@@ -198,7 +198,7 @@ with st.container(border=False):
         incident = st.selectbox(
             "incident",
             options=incidents_list,
-            index=current_incident_position,
+            index=None,
             label_visibility="collapsed",
         )
     if not incident:
