@@ -150,7 +150,7 @@ with st.container(border=False):
 
     with st.spinner("Reading from Google Sheet..."):
         df_shortlist = (
-            conn.read(worksheet="Batches", zxttl=0)
+            conn.read(worksheet="Batches", ttl=0)
             .dropna(how="all", axis=0)
             .dropna(how="all", axis=1)
         )
