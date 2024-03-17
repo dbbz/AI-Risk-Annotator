@@ -304,20 +304,21 @@ for stakeholder in impacted_stakeholder:
                 label_visibility="collapsed",
                 key=f"{incident}__{stakeholder}__harm_category",
             )
-        if not harm_category:
-            submitted = st.button(
-                f"Annotator: **{user}** | Submit your answers",
-                type="primary",
-                use_container_width=True,
-                disabled=True,
-            )
-            st.stop()
+    if not harm_category:
+        submitted = st.button(
+            f"Annotator: **{user}** | Submit your answers",
+            type="primary",
+            use_container_width=True,
+            disabled=True,
+        )
+        st.stop()
 
-        for harm_cat in harm_category:
-            left, right = st.columns((1, 35))
-            left.write("↳")
+    for harm_cat in harm_category:
+        with right:
+            sub_left, sub_right = st.columns((1, 35))
+            sub_left.write("↳")
 
-            with right:
+            with sub_right:
                 with st.container(border=True):
                     harm_type_help_text = """
                         - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
@@ -358,17 +359,16 @@ for stakeholder in impacted_stakeholder:
                             key=f"{incident}__{stakeholder}__{harm_cat}__notes",
                         )
 
-            if not harm_subcategory or not harm_type:
-                submitted = st.button(
-                    f"Annotator: **{user}** | Submit your answers",
-                    type="primary",
-                    use_container_width=True,
-                    disabled=True,
-                )
-                st.stop()
-            results[stakeholder][harm_cat] = (harm_subcategory, notes, harm_type)
+        if not harm_subcategory or not harm_type:
+            submitted = st.button(
+                f"Annotator: **{user}** | Submit your answers",
+                type="primary",
+                use_container_width=True,
+                disabled=True,
+            )
+            st.stop()
+        results[stakeholder][harm_cat] = (harm_subcategory, notes, harm_type)
 
-# st.info(f"""**Recap**: User: {user} | Incident: {incident}""")
 submitted = st.button(
     f"Annotator: **{user}** | Submit your answers",
     type="primary",
