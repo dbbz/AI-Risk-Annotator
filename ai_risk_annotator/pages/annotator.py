@@ -275,81 +275,36 @@ if not impacted_stakeholder:
     st.stop()
 
 results = {}
+
+
 for stakeholder in impacted_stakeholder:
+    left, right = st.columns((1, 35))
+    left.write("↳")
     results[stakeholder] = {}
-    harm_category_section = st.container(border=True)
-    with harm_category_section:
-        harm_category_help_text = ""
-        for k, v in harm_categories_descriptions.items():
-            harm_category_help_text += f"- **{k}**: {v['description']}\n"
 
-        st.markdown(
-            f"What :violet[category] of harm impacts `{stakeholder}`? *(multiple options are possible)*",
-            help=harm_category_help_text,
-        )
-
-        if show_descriptions:
-            st.caption(harm_category_help_text)
-
-        harm_category = st.multiselect(
-            "harm_category",
-            harm_categories.keys(),
-            default=None,
-            label_visibility="collapsed",
-            key=f"{incident}__{stakeholder}__harm_category",
-        )
-    if not harm_category:
-        submitted = st.button(
-            f"Annotator: **{user}** | Submit your answers",
-            type="primary",
-            use_container_width=True,
-            disabled=True,
-        )
-        st.stop()
-
-    for harm_cat in harm_category:
+    with right:
+        harm_category_section = st.container(border=True)
         with harm_category_section:
-            st.divider()
-            harm_type_help_text = """
-                - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
-                - _Potential harm_ - **a negative impact mentioned as being possible or likely but which is not recorded as having occurred** in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
-                """
-            st.markdown(
-                f"Is the `{harm_cat}` harm on `{stakeholder}` actual of potential?",
-                help=harm_type_help_text,
-            )
-            if show_descriptions:
-                st.caption(harm_type_help_text)
+            harm_category_help_text = ""
+            for k, v in harm_categories_descriptions.items():
+                harm_category_help_text += f"- **{k}**: {v['description']}\n"
 
-            harm_type = st.selectbox(
-                "incident_type",
-                ["Actual", "Potential"],
-                index=None,
-                key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
-                label_visibility="collapsed",
-            )
             st.markdown(
-                f"What :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                # help="Stated specific negative impact(s) of incident/issue",
+                f"What :violet[category] of harm impacts `{stakeholder}`? *(multiple options are possible)*",
+                help=harm_category_help_text,
             )
-            harm_subcategory = st.multiselect(
-                "harm_subcategory",
-                harm_categories[harm_cat],
+
+            if show_descriptions:
+                st.caption(harm_category_help_text)
+
+            harm_category = st.multiselect(
+                "harm_category",
+                harm_categories.keys(),
                 default=None,
                 label_visibility="collapsed",
-                key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
+                key=f"{incident}__{stakeholder}__harm_category",
             )
-
-            with st.container(border=False):
-                st.markdown("*[Optional] Notes*")
-                notes = st.text_area(
-                    "Further notes",
-                    placeholder="E.g. missing, overlapping or unclear harm type names or definitions.",
-                    label_visibility="collapsed",
-                    key=f"{incident}__{stakeholder}__{harm_cat}__notes",
-                )
-
-        if not harm_subcategory or not harm_type:
+        if not harm_category:
             submitted = st.button(
                 f"Annotator: **{user}** | Submit your answers",
                 type="primary",
@@ -357,7 +312,61 @@ for stakeholder in impacted_stakeholder:
                 disabled=True,
             )
             st.stop()
-        results[stakeholder][harm_cat] = (harm_subcategory, notes, harm_type)
+
+        for harm_cat in harm_category:
+            left, right = st.columns((1, 35))
+            left.write("↳")
+
+            with right:
+                with st.container(border=True):
+                    harm_type_help_text = """
+                        - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+                        - _Potential harm_ - **a negative impact mentioned as being possible or likely but which is not recorded as having occurred** in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+                        """
+                    st.markdown(
+                        f"Is the `{harm_cat}` harm on `{stakeholder}` actual of potential?",
+                        help=harm_type_help_text,
+                    )
+                    if show_descriptions:
+                        st.caption(harm_type_help_text)
+
+                    harm_type = st.selectbox(
+                        "incident_type",
+                        ["Actual", "Potential"],
+                        index=None,
+                        key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
+                        label_visibility="collapsed",
+                    )
+                    st.markdown(
+                        f"What :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
+                        # help="Stated specific negative impact(s) of incident/issue",
+                    )
+                    harm_subcategory = st.multiselect(
+                        "harm_subcategory",
+                        harm_categories[harm_cat],
+                        default=None,
+                        label_visibility="collapsed",
+                        key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
+                    )
+
+                    with st.container(border=False):
+                        st.markdown("*[Optional] Notes*")
+                        notes = st.text_area(
+                            "Further notes",
+                            placeholder="E.g. missing, overlapping or unclear harm type names or definitions.",
+                            label_visibility="collapsed",
+                            key=f"{incident}__{stakeholder}__{harm_cat}__notes",
+                        )
+
+            if not harm_subcategory or not harm_type:
+                submitted = st.button(
+                    f"Annotator: **{user}** | Submit your answers",
+                    type="primary",
+                    use_container_width=True,
+                    disabled=True,
+                )
+                st.stop()
+            results[stakeholder][harm_cat] = (harm_subcategory, notes, harm_type)
 
 # st.info(f"""**Recap**: User: {user} | Incident: {incident}""")
 submitted = st.button(
