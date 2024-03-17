@@ -21,6 +21,16 @@ from utils import (
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
 create_side_menu()
+st.markdown(
+    """
+    <style>
+        .stMultiSelect [data-baseweb=select] span{
+            max-width: 250px;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # Load the incidents descriptions and related links
@@ -119,6 +129,10 @@ st.markdown("### Annotations")
 
 if not check_password():
     st.stop()
+
+with st.sidebar:
+    st.divider()
+    show_descriptions = st.toggle("Show descriptions next to the questions", value=True)
 
 # Connect to the Google Sheet where to store the answers
 try:
@@ -241,8 +255,8 @@ with st.container(border=True):
         help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
         + stakeholders_help_text,
     )
-
-    st.caption(stakeholders_help_text)
+    if show_descriptions:
+        st.caption(stakeholders_help_text)
     impacted_stakeholder = st.multiselect(
         "impacted_stakeholders",
         stakeholders.keys(),
@@ -270,10 +284,12 @@ for stakeholder in impacted_stakeholder:
             harm_category_help_text += f"- **{k}**: {v['description']}\n"
 
         st.markdown(
-            f"What :violet[category] of harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
+            f"What :violet[category] of harm impacts `{stakeholder}`? *(multiple options are possible)*",
             help=harm_category_help_text,
         )
-        st.caption(harm_category_help_text)
+
+        if show_descriptions:
+            st.caption(harm_category_help_text)
 
         harm_category = st.multiselect(
             "harm_category",
@@ -293,8 +309,27 @@ for stakeholder in impacted_stakeholder:
 
     for harm_cat in harm_category:
         with harm_category_section:
+            st.divider()
+            harm_type_help_text = """
+                - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+                - _Potential harm_ - **a negative impact mentioned as being possible or likely but which is not recorded as having occurred** in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+                """
             st.markdown(
-                f"What :orange[specific] **`{harm_cat}`** harm impacts **`{stakeholder}`**? *(multiple options are possible)*",
+                f"Is the `{harm_cat}` harm on `{stakeholder}` actual of potential?",
+                help=harm_type_help_text,
+            )
+            if show_descriptions:
+                st.caption(harm_type_help_text)
+
+            harm_type = st.selectbox(
+                "incident_type",
+                ["Actual", "Potential"],
+                index=None,
+                key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
+                label_visibility="collapsed",
+            )
+            st.markdown(
+                f"What :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
                 # help="Stated specific negative impact(s) of incident/issue",
             )
             harm_subcategory = st.multiselect(
@@ -304,19 +339,6 @@ for stakeholder in impacted_stakeholder:
                 label_visibility="collapsed",
                 key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
             )
-
-            st.markdown(f"Is the `{harm_cat}` harm actual of potential?")
-            harm_type = st.selectbox(
-                "incident_type",
-                ["Actual", "Potential"],
-                index=None,
-                key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
-                label_visibility="collapsed",
-            )
-            st.caption("""
-            - _Actual harm_ - **a negative impact recorded as having occurred** in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
-            - _Potential harm_ - **a negative impact mentioned as being possible or likely but which is not recorded as having occurred** in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
-            """)
 
             with st.container(border=False):
                 st.markdown("*[Optional] Notes*")
