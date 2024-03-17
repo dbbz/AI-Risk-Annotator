@@ -62,7 +62,9 @@ df_results = df_results.loc[
     & (df_results.datetime <= pd.to_datetime(selected_dates[1]))
 ]
 
-st.dataframe(df_results, use_container_width=True, hide_index=True)
+# Show the results tbale
+# st.dataframe(df_results, use_container_width=True, hide_index=True)
+
 # df_results = df_results.drop_duplicates(
 #     subset=[
 #         "annotator",
