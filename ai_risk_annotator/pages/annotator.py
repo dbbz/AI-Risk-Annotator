@@ -19,7 +19,7 @@ from utils import (
     harm_categories_descriptions,
 )
 
-st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="wide")
+st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="centered")
 create_side_menu()
 st.markdown(
     """
