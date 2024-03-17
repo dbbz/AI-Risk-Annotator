@@ -102,7 +102,7 @@ def plot_counts(df, column):
     )
 
 
-tabs_list = ["Stakeholders", "Harm category", "Harm subcategory", "Harm type"]
+tabs_list = ["Stakeholders", "Harm subcategory", "Harm category", "Harm type"]
 tabs = st.tabs(["Sankey"] + tabs_list)
 for i, t in enumerate(tabs_list):
     with tabs[i + 1]:
