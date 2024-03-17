@@ -22,14 +22,14 @@ st.markdown("""### Results""")
 if not check_password():
     st.stop()
 
-# Connect to the Google Sheet where to store the answers
+# Connect to the Google Sheets where to store the answers
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
 except Exception as e:
-    st.error("Cannot connect to Google Sheet. Error: " + str(e))
+    st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
 
-with st.spinner("Reading from Google Sheet..."):
+with st.spinner("Reading from Google Sheets..."):
     df_results = (
         conn.read(
             worksheet="Annotations", ttl=30, usecols=columns, date_formatstr="%Y-%m-%d"

@@ -134,11 +134,11 @@ with st.sidebar:
     st.divider()
     show_descriptions = st.toggle("Show descriptions next to the questions", value=True)
 
-# Connect to the Google Sheet where to store the answers
+# Connect to the Google Sheets where to store the answers
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
 except Exception as e:
-    st.error("Cannot connect to Google Sheet. Error: " + str(e))
+    st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
 with st.container(border=False):
     annotators = get_annotators()
@@ -162,20 +162,27 @@ with st.container(border=False):
     repository = read_incidents_repository_from_file()
     descriptions, links = load_extra_data()
 
-    with st.spinner("Reading from Google Sheet..."):
-        df_shortlist = (
-            conn.read(worksheet="Batches", ttl=0)
-            .dropna(how="all", axis=0)
-            .dropna(how="all", axis=1)
-        )
-        df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
+    incidents_list = None
+    with st.spinner("Reading from Google Sheets..."):
+        try:
+            df_shortlist = (
+                conn.read(worksheet="Batches", ttl=0)
+                .dropna(how="all", axis=0)
+                .dropna(how="all", axis=1)
+            )
+            df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
 
-        incidents_list = df_shortlist.to_list()
+            incidents_list = df_shortlist.to_list()
 
-        # with open("shortlist.txt", "r") as f:
-        # incidents_list = [line.strip() for line in f.readlines()]
-        incidents_list = set(incidents_list) & set(repository.index)
-        incidents_list = sorted(list(incidents_list), reverse=True)
+            # with open("shortlist.txt", "r") as f:
+            # incidents_list = [line.strip() for line in f.readlines()]
+            incidents_list = set(incidents_list) & set(repository.index)
+            incidents_list = sorted(list(incidents_list), reverse=True)
+
+        except Exception as e:
+            st.error(
+                "Cannot read the short-listed list of incidents from Google Sheets."
+            )
 
     if not incidents_list:
         # User the URL parameters to filter the incidents
@@ -192,6 +199,9 @@ with st.container(border=False):
 
     st.markdown("Select an incident")
 
+    if "submitted_incidents" not in st.session_state:
+        st.session_state.submitted_incidents = {k: "" for k in incidents_list}
+
     current_incident_position = st.session_state.get("current_incident_position", None)
     if current_incident_position is not None and st.session_state.get(
         "form_submitted", False
@@ -207,6 +217,7 @@ with st.container(border=False):
             index=None,
             label_visibility="collapsed",
             horizontal=True,
+            captions=st.session_state.submitted_incidents.values(),
         )
     else:
         incident = st.selectbox(
@@ -400,7 +411,7 @@ if submitted:
 
     df_update = pd.DataFrame(data=tabular_results, columns=columns)
 
-    with st.spinner("Writing to Google Sheet..."):
+    with st.spinner("Writing to Google Sheets..."):
         df = (
             conn.read(
                 worksheet="Annotations",
@@ -426,7 +437,7 @@ if submitted:
                 .dropna(how="all", axis=1)
             )
 
-        except:
+        except Exception as e:
             conn.create(worksheet=user_worksheet_name, data=df_update)
         else:
             conn.update(
@@ -439,6 +450,7 @@ if submitted:
     )
     st.balloons()
 
+    st.session_state.submitted_incidents[incident] = "Annotated ✔️"
     st.session_state.form_submitted = True
     # st.rerun()
     switch_page("thanks")

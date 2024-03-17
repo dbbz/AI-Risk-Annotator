@@ -88,7 +88,7 @@ def get_annotators():
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
     except Exception as e:
-        st.error("Cannot connect to Google Sheet. Error: " + str(e))
+        st.error("Cannot connect to Google Sheets. Error: " + str(e))
         annotators = [
             "CP",
             "DB",
@@ -106,7 +106,7 @@ def get_annotators():
             "US",
         ]
     else:
-        with st.spinner("Reading from Google Sheet..."):
+        with st.spinner("Reading from Google Sheets..."):
             df_annotators = (
                 conn.read(
                     worksheet="Annotators",
