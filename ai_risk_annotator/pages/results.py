@@ -176,7 +176,7 @@ def gen_sankey(df, cat_cols=[], value_cols="", title="Sankey Diagram"):
 
 
 sankey_vars = list(map(lambda x: x.lower().replace(" ", "_"), tabs_list))
-sankey_vars = ["incident_ID"] + sankey_vars
+sankey_vars.insert(1, "incident_ID")
 sankey_vars.remove("harm_type")
 
 df_sankey = df_results.groupby(sankey_vars).size().to_frame(name="counts").reset_index()
