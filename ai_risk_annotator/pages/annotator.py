@@ -336,7 +336,7 @@ for stakeholder in impacted_stakeholder:
 - **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
                     """
                     st.markdown(
-                        f"Is the `{harm_cat}` harm(s) on `{stakeholder}` actual of potential?",
+                        f"Is the `{harm_cat}` harm(s) on `{stakeholder}` actual or potential?",
                         help=harm_type_help_text,
                     )
                     if show_descriptions:
