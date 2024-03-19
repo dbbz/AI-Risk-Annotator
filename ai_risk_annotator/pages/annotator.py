@@ -307,12 +307,18 @@ for stakeholder in impacted_stakeholder:
             if show_descriptions:
                 st.caption(harm_category_help_text)
 
+            # below is a trick to prevent streamlit from deleting previous answers
+            # had they disappeared from the screen temporarily
+            key = f"{incident}__{stakeholder}__harm_category"
+            if key in st.session_state:
+                st.session_state[key] = st.session_state[key]
+
             harm_category = st.multiselect(
                 "harm_category",
                 harm_categories.keys(),
                 default=None,
                 label_visibility="collapsed",
-                key=f"{incident}__{stakeholder}__harm_category",
+                key=key,
             )
     if not harm_category:
         submitted = st.button(
@@ -341,24 +347,37 @@ for stakeholder in impacted_stakeholder:
                     if show_descriptions:
                         st.caption(harm_type_help_text)
 
+                    key = f"{incident}__{stakeholder}__{harm_cat}__harm_type"
+                    if key in st.session_state:
+                        st.session_state[key] = st.session_state[key]
+
                     harm_type = st.selectbox(
                         "incident_type",
                         ["Actual", "Potential"],
                         index=None,
-                        key=f"{incident}__{stakeholder}__{harm_cat}__harm_type",
+                        key=key,
                         label_visibility="collapsed",
                     )
                     st.markdown(
                         f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
                         # help="Stated specific negative impact(s) of incident/issue",
                     )
+
+                    key = f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory"
+                    if key in st.session_state:
+                        st.session_state[key] = st.session_state[key]
+
                     harm_subcategory = st.multiselect(
                         "harm_subcategory",
                         harm_categories[harm_cat],
                         default=None,
                         label_visibility="collapsed",
-                        key=f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory",
+                        key=key,
                     )
+
+                    key = f"{incident}__{stakeholder}__{harm_cat}__notes"
+                    if key in st.session_state:
+                        st.session_state[key] = st.session_state[key]
 
                     with st.container(border=False):
                         st.markdown("*[Optional] Notes*")
@@ -366,7 +385,7 @@ for stakeholder in impacted_stakeholder:
                             "Further notes",
                             placeholder="E.g. missing, overlapping or unclear harm type names or definitions.",
                             label_visibility="collapsed",
-                            key=f"{incident}__{stakeholder}__{harm_cat}__notes",
+                            key=key,
                         )
 
         if not harm_subcategory or not harm_type:
