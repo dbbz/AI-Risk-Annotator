@@ -83,7 +83,7 @@ columns = [
 
 
 # The list of annotators (or the initials thereof)
-@st.cache_data
+# @st.cache_data
 def get_annotators():
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)

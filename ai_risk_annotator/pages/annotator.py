@@ -239,7 +239,6 @@ with st.container(border=False):
     if incident in descriptions:
         st.info(descriptions[incident])
     else:
-        # st.warning("Description missing.")
         st.info(scrap_incident_description(incident_page))
     st.markdown("##### Links")
 
