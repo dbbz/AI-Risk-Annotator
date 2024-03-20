@@ -29,7 +29,7 @@ except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
 
-with st.spinner("Reading from Google Sheets..."):
+with st.spinner("Reading the annotations from Google Sheets..."):
     df_results = (
         conn.read(
             worksheet="Annotations", ttl=30, usecols=columns, date_formatstr="%Y-%m-%d"

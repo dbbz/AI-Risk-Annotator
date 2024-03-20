@@ -13,10 +13,10 @@ from utils import (
     columns,
     create_side_menu,
     get_annotators,
-    harm_categories,
+    get_harm_descriptions,
+    get_incidents_list,
     stakeholders,
     switch_page,
-    harm_categories_descriptions,
 )
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="centered")
@@ -140,8 +140,10 @@ try:
 except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
+harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
+
 with st.container(border=False):
-    annotators = get_annotators()
+    annotators = get_annotators(conn)
     current_user = st.session_state.get("current_user", None)
     current_user_position = (
         annotators.index(current_user) if current_user is not None else None
@@ -163,26 +165,12 @@ with st.container(border=False):
     descriptions, links = load_extra_data()
 
     incidents_list = None
-    with st.spinner("Reading from Google Sheets..."):
-        try:
-            df_shortlist = (
-                conn.read(worksheet="Batches", ttl=0)
-                .dropna(how="all", axis=0)
-                .dropna(how="all", axis=1)
-            )
-            df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
-
-            incidents_list = df_shortlist.to_list()
-
-            # with open("shortlist.txt", "r") as f:
-            # incidents_list = [line.strip() for line in f.readlines()]
-            incidents_list = set(incidents_list) & set(repository.index)
-            incidents_list = sorted(list(incidents_list), reverse=True)
-
-        except Exception as e:
-            st.error(
-                "Cannot read the short-listed list of incidents from Google Sheets."
-            )
+    try:
+        incidents_list = get_incidents_list(conn)
+        incidents_list = set(incidents_list) & set(repository.index)
+        incidents_list = sorted(list(incidents_list), reverse=True)
+    except Exception as e:
+        st.error("Cannot read the short-listed list of incidents from Google Sheets.")
 
     if not incidents_list:
         # User the URL parameters to filter the incidents
@@ -230,7 +218,6 @@ with st.container(border=False):
         st.stop()
     st.session_state.current_incident_position = incidents_list.index(incident)
 
-# st.markdown("#### Incident description")
 st.divider()
 
 with st.container(border=False):
@@ -296,8 +283,11 @@ for stakeholder in impacted_stakeholder:
         harm_category_section = st.container(border=True)
         with harm_category_section:
             harm_category_help_text = ""
-            for k, v in harm_categories_descriptions.items():
-                harm_category_help_text += f"- **{k}**: {v['description']}\n"
+            filtered_harm_description = harm_categories_descriptions.loc[
+                harm_categories.keys()
+            ].to_dict()
+            for k, v in filtered_harm_description.items():
+                harm_category_help_text += f"- **{k}**: {v}\n"
 
             st.markdown(
                 f"Which :violet[category] of harms impacts `{stakeholder}`? *(multiple options are possible)*",
@@ -358,10 +348,21 @@ for stakeholder in impacted_stakeholder:
                         key=key,
                         label_visibility="collapsed",
                     )
+
+                    harm_category_help_text = ""
+                    filtered_harm_description = harm_categories_descriptions.loc[
+                        harm_categories[harm_cat]
+                    ].to_dict()
+                    for k, v in filtered_harm_description.items():
+                        harm_category_help_text += f"- **{k}**: {v}\n"
+
                     st.markdown(
                         f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                        # help="Stated specific negative impact(s) of incident/issue",
+                        help=harm_category_help_text,
                     )
+
+                    if show_descriptions:
+                        st.caption(harm_category_help_text)
 
                     key = f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory"
                     if key in st.session_state:
@@ -380,7 +381,7 @@ for stakeholder in impacted_stakeholder:
                         st.session_state[key] = st.session_state[key]
 
                     with st.container(border=False):
-                        st.markdown("*[Optional] Notes*")
+                        st.markdown("*[Optional]* Notes")
                         notes = st.text_area(
                             "Further notes",
                             placeholder="E.g. missing, overlapping or unclear harm type names or definitions.",

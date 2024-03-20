@@ -1,7 +1,8 @@
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_gsheets import GSheetsConnection
 from streamlit_markmap import markmap
-from utils import check_password, create_side_menu, harm_categories
+from utils import check_password, create_side_menu, get_harm_descriptions
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="centered")
 
@@ -64,6 +65,14 @@ st.page_link(
     "pages/annotator.py", label="Start annotating", icon="✍🏻", use_container_width=True
 )
 
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+except Exception as e:
+    st.error("Cannot connect to Google Sheets. Error: " + str(e))
+    raise
+
+harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
+
 taxonomy_mindmap = """
 ---
 markmap:
@@ -76,15 +85,14 @@ for k, v in harm_categories.items():
     for i in v:
         taxonomy_mindmap += f"### {i}\n"
 
-st.divider()
-
-st.markdown("#### Training slides")
-components.iframe(
-    "https://slides.com/db-5/ai-harm-taxonomy/embed",
-    width=576,
-    height=420,
-    scrolling=False,
-)
+# st.divider()
+# st.markdown("#### Training slides")
+# components.iframe(
+#     "https://slides.com/db-5/ai-harm-taxonomy/embed",
+#     width=576,
+#     height=420,
+#     scrolling=False,
+# )
 
 st.divider()
 st.markdown("#### Harms taxonomy overview")

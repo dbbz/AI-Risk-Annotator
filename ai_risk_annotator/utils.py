@@ -83,41 +83,18 @@ columns = [
 
 
 # The list of annotators (or the initials thereof)
-# @st.cache_data
-def get_annotators():
-    try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-    except Exception as e:
-        st.error("Cannot connect to Google Sheets. Error: " + str(e))
-        annotators = [
-            "CP",
-            "DB",
-            "EP",
-            "JH",
-            "GA",
-            "HP",
-            "JK",
-            "LW",
-            "MS",
-            "PG",
-            "PN",
-            "TC",
-            "TD",
-            "US",
-        ]
-    else:
-        with st.spinner("Reading from Google Sheets..."):
-            df_annotators = (
-                conn.read(
-                    worksheet="Annotators",
-                    ttl=0,
-                    usecols=[0],
-                )
-                .dropna(how="all", axis=0)
-                .dropna(how="all", axis=1)
-            )
-            annotators = df_annotators["Annotators"].to_list()
-    return annotators
+@st.cache_data(show_spinner="Reading the annotators' list from Google Sheets...")
+def get_annotators(_conn):
+    df_annotators = (
+        _conn.read(
+            worksheet="Annotators",
+            ttl=0,
+            usecols=[0],
+        )
+        .dropna(how="all", axis=0)
+        .dropna(how="all", axis=1)
+    )
+    return df_annotators["Annotators"].to_list()
 
 
 # The list of impacted stakeholders
@@ -133,122 +110,32 @@ stakeholders = {
 }
 
 
-harm_categories_descriptions = {
-    "Autonomy": {
-        "description": "Loss of or restrictions to the ability or rights of an individual, group or entity to make decisions and control their identity",
-        "subcategories": [],
-    },
-    "Physical": {
-        "description": "Physical injury to an individual or group, or damage to physical property",
-        "subcategories": [],
-    },
-    "Emotional & psychological": {
-        "description": "Direct or indirect impairment of the emotional and psychological mental health of an individual, organisation, or society",
-        "subcategories": [],
-    },
-    "Reputational": {
-        "description": "Damage to the reputation of an individual, group or organisation ",
-        "subcategories": [],
-    },
-    "Financial & business": {
-        "description": "Use or misuse of a technology system in a manner that damages the financial interests of an individual or group, or which causes strategic, operational, legal or financial harm to a business or other organisation",
-        "subcategories": [],
-    },
-    "Human rights & civil liberties": {
-        "description": "Use or misuse of a technology system in a manner that compromises fundamental human rights and freedoms",
-        "subcategories": [],
-    },
-    "Societal & cultural": {
-        "description": "Harms affecting the functioning of societies, communities and economies caused directly or indirectly by the use or misuse technology systems",
-        "subcategories": [],
-    },
-    "Political & economic": {
-        "description": "Manipulation of political beliefs, damage to political institutions and the effective delivery of government services",
-        "subcategories": [],
-    },
-    "Environmental": {
-        "description": "Damage to the environment directly or indirectly caused by a technology system or set of systems",
-        "subcategories": [],
-    },
-    # "Other": {"description": "", "subcategories": []},
-}
-# The list of harm categories and sub-categories
-harm_categories = {
-    "Autonomy": [
-        "Autonomy/agency loss",
-        "Impersonation/identity theft",
-        "IP/copyright loss",
-        "Personality loss",
-    ],
-    "Physical": [
-        "Bodily injury",
-        "Loss of life",
-        "Personal health deterioration",
-        "Property damage",
-    ],
-    "Emotional & psychological": [
-        "Addiction",
-        "Alienation/isolation",
-        "Anxiety/distress/depression",
-        "Coercion/manipulation",
-        "Dehumanisation/objectification",
-        "Dignity loss",
-        "Divination/fetishisation",
-        "Intimidation",
-        "Over-reliance",
-        "Radicalisation",
-        "Self-harm",
-        "Sexualisation",
-    ],
-    "Reputational": [
-        "Defamation/libel/slander",
-        "Loss of confidence/trust",
-    ],
-    "Financial & business": [
-        "Business operations/infrastructure damage",
-        "Confidentiality loss",
-        "Competition/collusion",
-        "Financial/earnings loss",
-        "Livelihood loss",
-        "Loss of productivity",
-        "Opportunity loss",
-    ],
-    "Human rights & civil liberties": [
-        "Loss of human rights and freedoms",
-        "Benefits/entitlements loss",
-        "Discrimination",
-        "Privacy loss",
-    ],
-    "Societal & cultural": [
-        "Damage to public health",
-        "Information ecosystem degradation",
-        "Job loss/losses",
-        "Labour exploitation",
-        "Loss of creativity/critical thinking",
-        "Stereotyping",
-        "Public service delivery deterioration",
-        "Societal destabilisation",
-        "Societal inequality",
-        "Violence/armed conflict",
-    ],
-    "Political & economic": [
-        "Critical infrastructure damage",
-        "Economic/political power concentration",
-        "Economic instability",
-        "Electoral interference",
-        "Institutional trust loss",
-        "Political instability",
-        "Political manipulation",
-    ],
-    "Environmental": [
-        "Carbon emissions",
-        "Ecology/biodiversity loss",
-        "Energy consumption",
-        "Natural resources extraction",
-        "Electronic waste",
-        "Landfill",
-        "Pollution",
-        "Water consumption",
-    ],
-    "Other": ["Cheating/plagiarism"],
-}
+@st.cache_data(show_spinner="Reading the AI harm taxonomy from Google Sheets...")
+def get_harm_descriptions(_conn):
+    df_harms = (
+        _conn.read(
+            worksheet="Taxonomy",
+            ttl=0,
+        )
+        .dropna(how="all", axis=0)
+        .dropna(how="all", axis=1)
+    )
+    df_harm_descriptions = (
+        _conn.read(worksheet="Descriptions", ttl=0)
+        .dropna(how="all", axis=0)
+        .dropna(how="all", axis=1)
+    )
+    return {
+        col_name: series.dropna().to_list() for col_name, series in df_harms.items()
+    }, df_harm_descriptions.set_index("Harm").squeeze()
+
+
+@st.cache_data(show_spinner="Reading the incidents short-list from Google Sheets...")
+def get_incidents_list(_conn):
+    df_shortlist = (
+        _conn.read(worksheet="Batches", ttl=0)
+        .dropna(how="all", axis=0)
+        .dropna(how="all", axis=1)
+    )
+    df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
+    return df_shortlist.to_list()
