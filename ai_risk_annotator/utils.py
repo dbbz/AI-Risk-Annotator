@@ -139,3 +139,19 @@ def get_incidents_list(_conn):
     )
     df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
     return df_shortlist.to_list()
+
+
+@st.cache_data(show_spinner="Reading the old annotations from Google Sheets...")
+def get_annotated_incidents(_conn):
+    df_annotations = (
+        (
+            _conn.read(worksheet="Annotations", ttl=0)
+            .dropna(how="all", axis=0)
+            .dropna(how="all", axis=1)
+        )[["annotator", "incident_ID"]]
+        .groupby("annotator")["incident_ID"]
+        .unique()
+        .apply(list)
+        .to_dict()
+    )
+    return df_annotations

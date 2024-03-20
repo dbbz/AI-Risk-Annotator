@@ -12,6 +12,7 @@ from utils import (
     check_password,
     columns,
     create_side_menu,
+    get_annotated_incidents,
     get_annotators,
     get_harm_descriptions,
     get_incidents_list,
@@ -31,6 +32,8 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+ANNOTATED_CAPTION = "Annotated ✔️"
 
 
 # Load the incidents descriptions and related links
@@ -144,22 +147,18 @@ harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
 
 with st.container(border=False):
     annotators = get_annotators(conn)
-    current_user = st.session_state.get("current_user", None)
-    current_user_position = (
-        annotators.index(current_user) if current_user is not None else None
-    )
+    if "current_user" not in st.session_state:
+        st.session_state.current_user = None
     st.markdown("Your name initials")
     user = st.selectbox(
         "annotator",
         options=annotators,
-        index=current_user_position,
+        index=st.session_state.current_user,
         label_visibility="collapsed",
     )
 
     if not user:
         st.stop()
-
-    st.session_state.current_user = user
 
     repository = read_incidents_repository_from_file()
     descriptions, links = load_extra_data()
@@ -187,8 +186,20 @@ with st.container(border=False):
 
     st.markdown("Select an incident")
 
+    annotated_incidents = get_annotated_incidents(conn)
+    if user not in annotated_incidents:
+        annotated_incidents = []
+    else:
+        annotated_incidents = annotated_incidents[user]
+
     if "submitted_incidents" not in st.session_state:
-        st.session_state.submitted_incidents = {k: "" for k in incidents_list}
+        st.session_state.submitted_incidents = {}
+
+    if user not in st.session_state.submitted_incidents:
+        st.session_state.submitted_incidents[user] = {
+            k: ANNOTATED_CAPTION if k in annotated_incidents else ""
+            for k in incidents_list
+        }
 
     current_incident_position = st.session_state.get("current_incident_position", None)
     if current_incident_position is not None and st.session_state.get(
@@ -205,7 +216,7 @@ with st.container(border=False):
             index=None,
             label_visibility="collapsed",
             horizontal=True,
-            captions=st.session_state.submitted_incidents.values(),
+            captions=st.session_state.submitted_incidents[user].values(),
         )
     else:
         incident = st.selectbox(
@@ -469,7 +480,9 @@ if submitted:
     )
     st.balloons()
 
-    st.session_state.submitted_incidents[incident] = "Annotated ✔️"
+    st.session_state.submitted_incidents[user][incident] = ANNOTATED_CAPTION
     st.session_state.form_submitted = True
+    st.session_state.current_user = annotators.index(user)
+
     # st.rerun()
     switch_page("thanks")
