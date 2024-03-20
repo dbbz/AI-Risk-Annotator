@@ -3,6 +3,7 @@ import hmac
 import pickle
 import shelve
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -29,9 +30,10 @@ except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
 
-with st.spinner("Reading the annotations from Google Sheets..."):
+@st.cache_data(show_spinner="Reading the annotations from Google Sheets...")
+def get_results(_conn):
     df_results = (
-        conn.read(
+        _conn.read(
             worksheet="Annotations", ttl=30, usecols=columns, date_formatstr="%Y-%m-%d"
         )
         .dropna(how="all", axis=0)
@@ -40,6 +42,10 @@ with st.spinner("Reading the annotations from Google Sheets..."):
     )
     # df_results.timestamp = pd.to_datetime(df_results.timestamp, unit="s")
     df_results.datetime = pd.to_datetime(df_results.datetime)
+    return df_results
+
+
+df_results = get_results(conn)
 
 with st.sidebar:
     st.divider()
@@ -113,6 +119,7 @@ for i, t in enumerate(tabs_list):
 # ------- sankey  --------
 
 
+@st.cache_data
 def gen_sankey(df, cat_cols=[], value_cols="", title="Sankey Diagram"):
     color_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
@@ -177,29 +184,63 @@ def gen_sankey(df, cat_cols=[], value_cols="", title="Sankey Diagram"):
     return fig
 
 
-sankey_vars = list(map(lambda x: x.lower().replace(" ", "_"), tabs_list))
-sankey_vars.insert(1, "incident_ID")
-sankey_vars.remove("harm_type")
-
-df_sankey = df_results.groupby(sankey_vars).size().to_frame(name="counts").reset_index()
-
-fig = go.Figure(
-    gen_sankey(
-        df_sankey,
-        sankey_vars,
-        "counts",
-        None,
-    )
-)
-fig.update_layout(
-    font_color="blue",
-    # font_size=14,
-)
-
 with tabs[0]:
-    st.plotly_chart(fig, use_container_width=True)
+    sankey_vars = list(map(lambda x: x.lower().replace(" ", "_"), tabs_list))
+    sankey_vars.insert(1, "incident_ID")
+    sankey_vars.remove("harm_type")
+
+    sankey_vars = st.multiselect(
+        "Choose at least two columns to plot",
+        sankey_vars,
+        default=sankey_vars,
+        max_selections=4,
+        help="💡 Use the text filters for better plots.",
+    )
+
+    if sankey_vars:
+        sankey_cols = st.columns(len(sankey_vars))
+    text_filters = {}
+    for i, col in enumerate(sankey_vars):
+        text_filters[col] = sankey_cols[i].text_input(
+            "Text filter on " + col,
+            key="text_" + col,
+            help="Case-insensitive text filtering.",
+        )
+
+    if len(sankey_vars) == 1:
+        st.warning("Select a second column to plot.", icon="⚠️")
+
+    if len(sankey_vars) > 1:
+        mask = np.full_like(df_results.index, True, dtype=bool)
+        for col, filered_text in text_filters.items():
+            if filered_text.strip():
+                mask = mask & df_results[col].str.lower().str.contains(
+                    filered_text.lower()
+                )
+
+        df_mask = df_results[mask]
+        df_sankey = (
+            df_mask.groupby(sankey_vars).size().to_frame(name="counts").reset_index()
+        )
+
+        fig = go.Figure(
+            gen_sankey(
+                df_sankey,
+                sankey_vars,
+                "counts",
+                None,
+            )
+        )
+        fig.update_layout(
+            font_color="black",
+            font_size=15,
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
 
 # ------- agreement --------
+
+st.divider()
 
 
 def preprocess_data(df):

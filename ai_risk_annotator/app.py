@@ -61,6 +61,7 @@ st.page_link(
     icon="🌐",
 )
 
+
 st.page_link(
     "pages/annotator.py", label="Start annotating", icon="✍🏻", use_container_width=True
 )
