@@ -142,11 +142,30 @@ try:
     conn = st.connection("gsheets", type=GSheetsConnection)
 except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
+    st.info(
+        "Try to refresh the page. If the problem persists please inform us via Slack."
+    )
+    st.stop()
 
-harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
+try:
+    harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
+except Exception as e:
+    st.error("Cannot connect to Google Sheets. Error: " + str(e))
+    st.info(
+        "Try to refresh the page. If the problem persists please inform us via Slack."
+    )
+    st.stop()
 
 with st.container(border=False):
-    annotators = get_annotators(conn)
+    try:
+        annotators = get_annotators(conn)
+    except Exception as e:
+        st.error("Cannot connect to Google Sheets. Error: " + str(e))
+        st.info(
+            "Try to refresh the page. If the problem persists please inform us via Slack."
+        )
+        st.stop()
+
     if "current_user" not in st.session_state:
         st.session_state.current_user = None
     st.markdown("Your name initials")
@@ -169,7 +188,7 @@ with st.container(border=False):
         incidents_list = set(incidents_list) & set(repository.index)
         incidents_list = sorted(list(incidents_list), reverse=True)
     except Exception as e:
-        st.error("Cannot read the short-listed list of incidents from Google Sheets.")
+        st.toast("Cannot read the short-listed list of incidents from Google Sheets.")
 
     if not incidents_list:
         # User the URL parameters to filter the incidents
@@ -186,7 +205,13 @@ with st.container(border=False):
 
     st.markdown("Select an incident")
 
-    annotated_incidents = get_annotated_incidents(conn)
+    try:
+        annotated_incidents = get_annotated_incidents(conn)
+    except Exception as e:
+        st.toast(
+            "Could not read the previously annotated incidents from Google Sheets."
+        )
+
     if user not in annotated_incidents:
         annotated_incidents = []
     else:
@@ -360,7 +385,9 @@ for stakeholder in impacted_stakeholder:
                         label_visibility="collapsed",
                     )
 
-                    harm_category_help_text = ""
+                    harm_category_help_text = (
+                        "Example: \n" if harm_cat == "Other" else ""
+                    )
                     filtered_harm_description = harm_categories_descriptions.loc[
                         harm_categories[harm_cat]
                     ].to_dict()
@@ -372,20 +399,25 @@ for stakeholder in impacted_stakeholder:
                         help=harm_category_help_text,
                     )
 
-                    if show_descriptions:
-                        st.caption(harm_category_help_text)
-
                     key = f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory"
                     if key in st.session_state:
                         st.session_state[key] = st.session_state[key]
 
-                    harm_subcategory = st.multiselect(
-                        "harm_subcategory",
-                        harm_categories[harm_cat],
-                        default=None,
-                        label_visibility="collapsed",
-                        key=key,
-                    )
+                    if harm_cat == "Other":
+                        harm_subcategory = st.text_input(
+                            "harm_subcategory", label_visibility="collapsed", key=key
+                        )
+                    else:
+                        if show_descriptions:
+                            st.caption(harm_category_help_text)
+
+                        harm_subcategory = st.multiselect(
+                            "harm_subcategory",
+                            harm_categories[harm_cat],
+                            default=None,
+                            label_visibility="collapsed",
+                            key=key,
+                        )
 
                     key = f"{incident}__{stakeholder}__{harm_cat}__notes"
                     if key in st.session_state:
@@ -442,43 +474,62 @@ if submitted:
     df_update = pd.DataFrame(data=tabular_results, columns=columns)
 
     with st.spinner("Writing to Google Sheets..."):
-        df = (
-            conn.read(
-                worksheet="Annotations",
-                ttl=0,
-                usecols=columns,
-                date_formatstr="%Y-%m-%d",
-            )
-            .dropna(how="all", axis=0)
-            .dropna(how="all", axis=1)
-        )
-
-        df = pd.concat([df, df_update], ignore_index=True)
-        conn.update(worksheet="Annotations", data=df)
         try:
-            user_worksheet_name = "user_" + user
-            df_backup = (
+            df = (
                 conn.read(
-                    worksheet=user_worksheet_name,
-                    data=df_update,
+                    worksheet="Annotations",
+                    ttl=0,
+                    usecols=columns,
                     date_formatstr="%Y-%m-%d",
                 )
                 .dropna(how="all", axis=0)
                 .dropna(how="all", axis=1)
             )
 
+            df = pd.concat([df, df_update], ignore_index=True)
+            conn.update(worksheet="Annotations", data=df)
         except Exception as e:
-            conn.create(worksheet=user_worksheet_name, data=df_update)
-        else:
-            conn.update(
-                worksheet=user_worksheet_name,
-                data=pd.concat([df_backup, df_update], ignore_index=True),
+            st.error("Cannot connect to Google Sheets. Error: " + str(e))
+            st.info(
+                "Try to refresh the page. If the problem persists please inform us via Slack.",
+                icon="💡",
             )
+            st.info(
+                "Alternatively, you can save your data and send it offline.",
+                icon="⬇️",
+            )
+            st.download_button(
+                "Save your data",
+                data=df_update.to_csv().encode("utf-8"),
+                file_name=f"saved_annotations_{user}_{timestamp}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+            st.stop()
+
+        # try:
+        #     user_worksheet_name = "user_" + user
+        #     df_backup = (
+        #         conn.read(
+        #             worksheet=user_worksheet_name,
+        #             data=df_update,
+        #             date_formatstr="%Y-%m-%d",
+        #         )
+        #         .dropna(how="all", axis=0)
+        #         .dropna(how="all", axis=1)
+        #     )
+
+        # except Exception as e:
+        #     conn.create(worksheet=user_worksheet_name, data=df_update)
+        # else:
+        #     conn.update(
+        #         worksheet=user_worksheet_name,
+        #         data=pd.concat([df_backup, df_update], ignore_index=True),
+        #     )
 
     st.toast(
         "Your answers were submitted. You can select another incident to annotate."
     )
-    st.balloons()
 
     st.session_state.submitted_incidents[user][incident] = ANNOTATED_CAPTION
     st.session_state.form_submitted = True
