@@ -48,18 +48,18 @@ st.info(
 if not check_password():
     st.stop()
 
-st.page_link(
-    "https://docs.google.com/document/d/1QxXMWA9na4Sf3hQpQXYI2vBtRIpP8hOE7S_3MDck0N4/edit",
-    label="Stakeholders definitions",
-    use_container_width=True,
-    icon="🌐",
-)
-st.page_link(
-    "https://docs.google.com/document/d/1pQjNyAbvtelHqrN6Rz4TlixOak6eSJzkKUAGN30V8bo/edit",
-    label="Harm definitions",
-    use_container_width=True,
-    icon="🌐",
-)
+# st.page_link(
+#     "https://docs.google.com/document/d/1QxXMWA9na4Sf3hQpQXYI2vBtRIpP8hOE7S_3MDck0N4/edit",
+#     label="Stakeholders definitions",
+#     use_container_width=True,
+#     icon="🌐",
+# )
+# st.page_link(
+#     "https://docs.google.com/document/d/1pQjNyAbvtelHqrN6Rz4TlixOak6eSJzkKUAGN30V8bo/edit",
+#     label="Harm definitions",
+#     use_container_width=True,
+#     icon="🌐",
+# )
 
 
 st.page_link(
