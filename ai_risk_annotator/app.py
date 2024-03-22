@@ -25,7 +25,7 @@ st.markdown("""
 
     #### Methodology
     Use the following process when annotating incident/issues:
-    1. Select your name initials (eg. CP)
+    1. Enter your name
     2. Select incident/issue (eg. AIAAIC1372)
     3. Identify and select harmed stakeholder(s)
     4. Identify and select harm category(ies) per stakeholder type
@@ -45,29 +45,13 @@ st.info(
     icon="🎈",
 )
 
-if not check_password():
-    st.stop()
-
-# st.page_link(
-#     "https://docs.google.com/document/d/1QxXMWA9na4Sf3hQpQXYI2vBtRIpP8hOE7S_3MDck0N4/edit",
-#     label="Stakeholders definitions",
-#     use_container_width=True,
-#     icon="🌐",
-# )
-# st.page_link(
-#     "https://docs.google.com/document/d/1pQjNyAbvtelHqrN6Rz4TlixOak6eSJzkKUAGN30V8bo/edit",
-#     label="Harm definitions",
-#     use_container_width=True,
-#     icon="🌐",
-# )
-
 
 st.page_link(
     "pages/annotator.py", label="Start annotating", icon="✍🏻", use_container_width=True
 )
 
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    conn = st.connection("gsheets_public", type=GSheetsConnection)
 except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
     raise

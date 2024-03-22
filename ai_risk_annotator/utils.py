@@ -10,7 +10,7 @@ def create_side_menu():
         st.divider()
         st.page_link("app.py", label="Instructions", icon="📖")
         st.page_link("pages/annotator.py", label="Annotator", icon="✍🏻")
-        st.page_link("pages/results.py", label="Results", icon="📈")
+        # st.page_link("pages/results.py", label="Results", icon="📈")
 
 
 def switch_page(page_name: str):

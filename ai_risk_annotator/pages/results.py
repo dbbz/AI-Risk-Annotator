@@ -25,7 +25,7 @@ if not check_password():
 
 # Connect to the Google Sheets where to store the answers
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    conn = st.connection("gsheets_pulic", type=GSheetsConnection)
 except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
