@@ -9,11 +9,9 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 from streamlit_gsheets import GSheetsConnection
 from utils import (
-    check_password,
     columns,
     create_side_menu,
     get_annotated_incidents,
-    get_annotators,
     get_harm_descriptions,
     get_incidents_list,
     stakeholders,
@@ -152,16 +150,13 @@ def get_list_of_media_links(page_url):
 st.markdown("# ✍🏻 ")
 st.markdown("### Annotations")
 
-if not check_password():
-    st.stop()
-
 with st.sidebar:
     st.divider()
     show_descriptions = st.toggle("Show descriptions next to the questions", value=True)
 
 # Connect to the Google Sheets where to store the answers
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
+    conn = st.connection("gsheets_public", type=GSheetsConnection)
 except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
     st.info(
@@ -179,23 +174,14 @@ except Exception as e:
     st.stop()
 
 with st.container(border=False):
-    try:
-        annotators = get_annotators(conn)
-    except Exception as e:
-        st.error("Cannot connect to Google Sheets. Error: " + str(e))
-        st.info(
-            "Try to refresh the page. If the problem persists please inform us via Slack."
-        )
-        st.stop()
-
     if "current_user" not in st.session_state:
-        st.session_state.current_user = None
-    st.markdown("Your name initials")
-    user = st.selectbox(
+        st.session_state.current_user = ""
+    st.markdown("Your name")
+    user = st.text_input(
         "annotator",
-        options=annotators,
-        index=st.session_state.current_user,
+        value=st.session_state.current_user,
         label_visibility="collapsed",
+        placeholder="First and last name",
     )
 
     if not user:
@@ -204,27 +190,7 @@ with st.container(border=False):
     repository = read_incidents_repository_from_file()
     descriptions, links = load_extra_data()
 
-    incidents_list = None
-    try:
-        incidents_list = get_incidents_list(conn)
-        incidents_list = set(incidents_list) & set(repository.index)
-        incidents_list = sorted(list(incidents_list), reverse=True)
-    except Exception as e:
-        st.toast("Cannot read the short-listed list of incidents from Google Sheets.")
-
-    if not incidents_list:
-        # User the URL parameters to filter the incidents
-        # to be annotated
-        # eg. for <app_url>/?id=AIAAIC1366&id=AIAAIC1365
-        # only the incidents with the ids AIAAIC1366 and AIAAIC1365
-        # will be shown.
-        filtered_incidents = st.query_params.get_all("id")
-        if filtered_incidents and set(repository.index) & set(filtered_incidents):
-            incidents_list = set(repository.index) & set(filtered_incidents)
-            incidents_list = sorted(list(filtered_incidents), reverse=True)
-        else:
-            incidents_list = sorted(list(repository.index), reverse=True)
-
+    incidents_list = sorted(list(repository.index), reverse=True)
     st.markdown("Select an incident")
 
     try:
@@ -555,7 +521,7 @@ if submitted:
 
     st.session_state.submitted_incidents[user][incident] = ANNOTATED_CAPTION
     st.session_state.form_submitted = True
-    st.session_state.current_user = annotators.index(user)
+    st.session_state.current_user = user
 
     # st.rerun()
     switch_page("thanks")
