@@ -272,6 +272,8 @@ with st.container(border=False):
             index=None,
             label_visibility="collapsed",
         )
+        if incident and incident in annotated_incidents:
+            st.caption(ANNOTATED_CAPTION)
     if not incident:
         st.stop()
     st.session_state.current_incident_position = incidents_list.index(incident)
