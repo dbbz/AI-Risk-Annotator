@@ -312,21 +312,41 @@ with st.container(border=True):
         stakeholders_help_text += f"- **{k}**: {v}\n"
 
     st.markdown(
-        "Who are the impacted stakeholders? *(multiple options are possible)*",
+        "Who are the :red[primary] impacted stakeholders?",
         help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
         + stakeholders_help_text,
     )
     if show_descriptions:
         st.caption(stakeholders_help_text)
-    impacted_stakeholder = st.multiselect(
-        "impacted_stakeholders",
+
+    impacted_stakeholders = []
+    primary_impacted_stakeholder = st.selectbox(
+        "primary_impacted_stakeholders",
         stakeholders.keys(),
-        default=None,
+        index=None,
         label_visibility="collapsed",
-        key=incident + "__impacted",
+        key="primary__" + incident + "__impacted",
     )
 
-if not impacted_stakeholder:
+    if primary_impacted_stakeholder:
+        impacted_stakeholders.append(primary_impacted_stakeholder)
+        st.markdown(
+            "Are there :orange[other] impacted stakeholders? (by decreasing order of importance)"
+        )
+        other_impacted_stakeholder = st.multiselect(
+            "other_impacted_stakeholders",
+            [
+                elem
+                for elem in stakeholders.keys()
+                if elem != primary_impacted_stakeholder
+            ],
+            default=None,
+            label_visibility="collapsed",
+            key="other__" + incident + "__impacted",
+        )
+        impacted_stakeholders.extend(other_impacted_stakeholder)
+
+if not impacted_stakeholders:
     submitted = st.button(
         f"Annotator: **{user}** | Submit your answers",
         type="primary",
@@ -338,7 +358,7 @@ if not impacted_stakeholder:
 results = {}
 
 
-for stakeholder in impacted_stakeholder:
+for stakeholder in impacted_stakeholders:
     left, right = st.columns((1, 35))
     left.write("↳")
     results[stakeholder] = {}
