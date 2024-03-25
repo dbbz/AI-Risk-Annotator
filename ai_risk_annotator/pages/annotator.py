@@ -2,6 +2,7 @@ import datetime
 import pickle
 import re
 
+import re
 import pandas as pd
 import requests
 import streamlit as st
@@ -116,10 +117,16 @@ def scrap_incident_description(link):
 
     # This is dangeriously hard-coded.
     description = soup.find_all(
+        # class_="hJDwNd-AhqUyc-uQSCkd Ft7HRd-AhqUyc-uQSCkd purZT-AhqUyc-II5mzb ZcASvf-AhqUyc-II5mzb pSzOP-AhqUyc-qWD73c Ktthjf-AhqUyc-qWD73c JNdkSc SQVYQc"
         class_="hJDwNd-AhqUyc-uQSCkd Ft7HRd-AhqUyc-uQSCkd jXK9ad D2fZ2 zu5uec OjCsFc dmUFtb wHaque g5GTcb"
     )
-    description = description[1].get_text()
-    return description
+
+    header_pattern = r"^(#+)\s+(.*)"
+    description = markdownify("\n".join((str(i) for i in description[1:-1])))
+    description = re.sub(header_pattern, r"#### \2", description)
+    # st.code(description)
+
+    return description.replace("### ", "##### ")
 
 
 def get_deepest_text(tag):
@@ -287,13 +294,14 @@ st.divider()
 with st.container(border=False):
     incident_page = repository.loc[incident, "links"]
     st.markdown("##### Incident: " + repository.loc[incident, "title"])
-    if incident in descriptions:
-        st.info(descriptions[incident])
-    else:
+    # if incident in descriptions:
+    #     st.info(descriptions[incident])
+    # else:
+    with st.container(height=None, border=False):
         st.info(scrap_incident_description(incident_page))
-    st.markdown("##### Links")
 
-    st.warning(get_list_of_media_links(incident_page))
+    # st.markdown("##### Links")
+    # st.warning(get_list_of_media_links(incident_page))
 
     st.page_link(
         incident_page,
