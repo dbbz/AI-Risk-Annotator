@@ -389,7 +389,7 @@ for stakeholder in impacted_stakeholders:
 
             harm_category = st.multiselect(
                 "harm_category",
-                harm_categories.keys(),
+                list(harm_categories.keys()) + ["Other"],
                 default=None,
                 label_visibility="collapsed",
                 key=key,
@@ -433,29 +433,33 @@ for stakeholder in impacted_stakeholders:
                         label_visibility="collapsed",
                     )
 
-                    harm_category_help_text = (
-                        "Example: \n" if harm_cat == "Other" else ""
-                    )
-                    filtered_harm_description = harm_categories_descriptions.loc[
-                        harm_categories[harm_cat]
-                    ].to_dict()
-                    for k, v in filtered_harm_description.items():
-                        harm_category_help_text += f"- **{k}**: {v}\n"
-
-                    st.markdown(
-                        f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                        help=harm_category_help_text,
-                    )
-
                     key = f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory"
                     if key in st.session_state:
                         st.session_state[key] = st.session_state[key]
 
                     if harm_cat == "Other":
+                        st.markdown(
+                            f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`?",
+                        )
+
                         harm_subcategory = st.text_input(
                             "harm_subcategory", label_visibility="collapsed", key=key
                         )
                     else:
+                        harm_category_help_text = (
+                            "Example: \n" if harm_cat == "Other" else ""
+                        )
+                        filtered_harm_description = harm_categories_descriptions.loc[
+                            harm_categories[harm_cat]
+                        ].to_dict()
+                        for k, v in filtered_harm_description.items():
+                            harm_category_help_text += f"- **{k}**: {v}\n"
+
+                        st.markdown(
+                            f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
+                            help=harm_category_help_text,
+                        )
+
                         if show_descriptions:
                             st.caption(harm_category_help_text)
 

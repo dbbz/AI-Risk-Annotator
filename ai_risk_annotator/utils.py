@@ -120,6 +120,7 @@ def get_harm_descriptions(_conn):
         .dropna(how="all", axis=0)
         .dropna(how="all", axis=1)
     )
+
     df_harm_descriptions = (
         _conn.read(worksheet="Descriptions", ttl=0)
         .dropna(how="all", axis=0)
