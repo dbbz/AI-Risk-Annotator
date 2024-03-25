@@ -182,7 +182,7 @@ with st.container(border=False):
         value=st.session_state.current_user,
         label_visibility="collapsed",
         placeholder="First and last name",
-    )
+    ).strip()
 
     if not user:
         st.stop()
@@ -238,7 +238,11 @@ with st.container(border=False):
             index=None,
             label_visibility="collapsed",
         )
-        if incident and incident in annotated_incidents:
+        if (
+            incident
+            and incident in st.session_state.submitted_incidents[user]
+            and st.session_state.submitted_incidents[user][incident] != ""
+        ):
             st.caption(ANNOTATED_CAPTION)
     if not incident:
         st.stop()
