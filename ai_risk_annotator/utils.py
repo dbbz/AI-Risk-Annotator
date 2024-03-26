@@ -271,7 +271,7 @@ def get_incidents_list(_conn):
         .dropna(how="all", axis=0)
         .dropna(how="all", axis=1)
     )
-    df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: x.strip())
+    df_shortlist = df_shortlist.iloc[:, -1].apply(lambda x: str(x).strip())
     return df_shortlist.to_list()
 
 

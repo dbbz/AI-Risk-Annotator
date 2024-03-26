@@ -53,7 +53,8 @@ def get_results(_conn) -> pd.DataFrame:
 df_results = get_results(conn)
 repository = read_incidents_repository_from_file()
 
-st.dataframe(df_results, use_container_width=True, hide_index=True)
+# st.dataframe(df_results, use_container_width=True, hide_index=True)
+
 with st.sidebar:
     st.divider()
     if st.button("Refresh results", use_container_width=True):

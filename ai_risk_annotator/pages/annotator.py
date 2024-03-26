@@ -116,6 +116,7 @@ with st.container(border=False):
         incidents_list = sorted(list(incidents_list), reverse=True)
     except Exception as e:
         st.toast("Cannot read the short-listed list of incidents from Google Sheets.")
+        st.toast(e)
 
     if not incidents_list:
         # User the URL parameters to filter the incidents
@@ -138,6 +139,7 @@ with st.container(border=False):
         st.toast(
             "Could not read the previously annotated incidents from Google Sheets."
         )
+        st.toast(e)
 
     if user not in annotated_incidents:
         annotated_incidents = []
