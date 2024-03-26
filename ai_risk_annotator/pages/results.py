@@ -10,7 +10,12 @@ import plotly.graph_objects as go
 import streamlit as st
 from nltk import agreement
 from streamlit_gsheets import GSheetsConnection
-from utils import check_password, columns, create_side_menu
+from utils import (
+    check_password,
+    columns,
+    create_side_menu,
+    read_incidents_repository_from_file,
+)
 
 st.set_page_config(page_title="AI Harm Annotator", layout="wide")
 pd.options.plotting.backend = "plotly"
@@ -30,8 +35,8 @@ except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
 
 
-@st.cache_data(show_spinner="Reading the annotations from Google Sheets...")
-def get_results(_conn):
+@st.cache_data(ttl=3600, show_spinner="Reading the annotations from Google Sheets...")
+def get_results(_conn) -> pd.DataFrame:
     df_results = (
         _conn.read(
             worksheet="Annotations", ttl=30, usecols=columns, date_formatstr="%Y-%m-%d"
@@ -46,27 +51,47 @@ def get_results(_conn):
 
 
 df_results = get_results(conn)
+repository = read_incidents_repository_from_file()
 
+st.dataframe(df_results, use_container_width=True, hide_index=True)
 with st.sidebar:
     st.divider()
     if st.button("Refresh results", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
+    st.divider()
+
     min_date = df_results.datetime.min().date() - pd.Timedelta(days=1)
     max_date = df_results.datetime.max().date() + pd.Timedelta(days=1)
     selected_dates = st.slider(
-        "Timeline",
+        "Filtering timeline",
         min_value=min_date,
         max_value=max_date,
         value=(min_date, max_date),
         format="YYYY-MM-DD",
     )
 
+    st.divider()
+    toggle_incident_filtering = st.toggle("Filter on incidents")
+    selected_incident = None
+    if toggle_incident_filtering:
+        selected_incident = st.radio(
+            "incidents_filter",
+            df_results.incident_ID.unique(),
+            index=None,
+            label_visibility="collapsed",
+            captions=repository.loc[df_results.incident_ID.unique(), "title"].to_list(),
+        )
+
 df_results = df_results.loc[
     (df_results.datetime >= pd.to_datetime(selected_dates[0]))
     & (df_results.datetime <= pd.to_datetime(selected_dates[1]))
 ]
+
+if selected_incident:
+    df_results = df_results[df_results.incident_ID == selected_incident]
+
 
 # Show the results tbale
 # st.dataframe(df_results, use_container_width=True, hide_index=True)
@@ -96,12 +121,19 @@ df_results = df_results.loc[
 # ------- plots --------
 
 
-def plot_counts(df, column):
+def plot_counts(df: pd.DataFrame, column: str) -> None:
     df_counts = (
-        df[column].value_counts(sort=True, ascending=True).to_frame(name="count")
+        df.groupby(["incident_ID", "annotator"])[column]
+        .value_counts(sort=True, ascending=True)
+        .to_frame(name="count")
+        .reset_index()
     )
+    st.dataframe(df_counts.set_index(column).sort_values(by="count", ascending=False))
     st.plotly_chart(
-        df_counts.plot(kind="barh").update_layout(
+        df_counts.set_index(column)["count"]
+        .sort_values(ascending=True)
+        .plot(kind="barh")
+        .update_layout(
             showlegend=False,
             xaxis={"title": "", "visible": True, "showticklabels": True},
             yaxis={"title": "", "visible": True, "showticklabels": True},
@@ -111,7 +143,7 @@ def plot_counts(df, column):
 
 
 tabs_list = ["Stakeholders", "Harm subcategory", "Harm category", "Harm type"]
-tabs = st.tabs(["Sankey"] + tabs_list)
+tabs = st.tabs(["Sankey"] + tabs_list + ["Comments"])
 for i, t in enumerate(tabs_list):
     with tabs[i + 1]:
         plot_counts(df_results, t.lower().replace(" ", "_"))
@@ -119,7 +151,7 @@ for i, t in enumerate(tabs_list):
 # ------- sankey  --------
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def gen_sankey(df, cat_cols=[], value_cols="", title="Sankey Diagram"):
     color_palette = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
@@ -237,6 +269,20 @@ with tabs[0]:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+
+with tabs[-1]:
+    df_filter = df_results[df_results.notes.notna()]
+
+    for _, row in df_filter.iterrows():
+        col_1, col_2, col_3, col_4 = st.columns([2, 2, 4, 1])
+        col_1.write(repository.loc[row.incident_ID, "title"])
+        col_2.write(
+            f":red[{row.harm_type}] harm on :violet[{row.stakeholders}] of :blue[{row.harm_subcategory}] with the comment:"
+        )
+        col_3.warning(row.notes)
+        col_4.write(row.annotator)
+
 
 # ------- agreement --------
 

@@ -77,7 +77,7 @@ harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
 taxonomy_mindmap = """
 ---
 markmap:
-colorFreezeLevel: 2
+    colorFreezeLevel: 2
 ---
 # AI Harm Taxonomy
 """
@@ -86,6 +86,10 @@ for k, v in harm_categories.items():
     for i in v:
         taxonomy_mindmap += f"### {i}\n"
 
+
+st.divider()
+st.markdown("#### Harms taxonomy overview")
+markmap(taxonomy_mindmap)
 # st.divider()
 # st.markdown("#### Training slides")
 # components.iframe(
@@ -94,7 +98,3 @@ for k, v in harm_categories.items():
 #     height=420,
 #     scrolling=False,
 # )
-
-st.divider()
-st.markdown("#### Harms taxonomy overview")
-markmap(taxonomy_mindmap)

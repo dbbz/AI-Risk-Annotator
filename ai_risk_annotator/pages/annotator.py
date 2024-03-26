@@ -1,14 +1,9 @@
 import datetime
-import pickle
-import re
 
-import re
 import pandas as pd
-import requests
 import streamlit as st
-from bs4 import BeautifulSoup
-from markdownify import markdownify
 from streamlit_gsheets import GSheetsConnection
+from streamlit_markmap import markmap
 from utils import (
     check_password,
     columns,
@@ -17,6 +12,9 @@ from utils import (
     get_annotators,
     get_harm_descriptions,
     get_incidents_list,
+    load_extra_data,
+    read_incidents_repository_from_file,
+    scrap_incident_description,
     stakeholders,
     switch_page,
 )
@@ -35,125 +33,6 @@ st.markdown(
 )
 
 ANNOTATED_CAPTION = "Annotated ✔️"
-
-
-# Load the incidents descriptions and related links
-# scrapped from the AIAAIC website as they are not in the sheet
-@st.cache_data
-def load_extra_data():
-    with open("descriptions.pickle", "rb") as f:
-        descriptions = pickle.load(f)
-    with open("links.pickle", "rb") as f:
-        links = pickle.load(f)
-
-    return descriptions, links
-
-
-def download_public_sheet_as_csv(csv_url, filename="downloaded_sheet.csv"):
-    """Downloads a public Google Sheet as a CSV file.
-
-    Args:
-        csv_url (str): The CSV download URL of the Google Sheet.
-        filename (str, optional): The filename for the downloaded CSV file. Defaults to "downloaded_sheet.csv".
-    """
-
-    try:
-        response = requests.get(csv_url)
-        response.raise_for_status()  # Check for HTTP errors
-
-        with open(filename, "wb") as f:
-            f.write(response.content)
-
-    except requests.exceptions.RequestException as e:
-        st.error(f"An error occurred: {e}")
-
-
-# Load the actual AIAAIC repository (list of incidents)
-# It used to be downloaded from the online repo
-# but due to frequent changes in the sheet format
-# I ended up using an offline (potentially not up to date) version
-@st.cache_data
-def read_incidents_repository_from_file():
-    download_public_sheet_as_csv(
-        "https://docs.google.com/spreadsheets/d/1Bn55B4xz21-_Rgdr8BBb2lt0n_4rzLGxFADMlVW0PYI/export?format=csv&gid=888071280"
-    )
-    df = (
-        pd.read_csv("downloaded_sheet.csv", skip_blank_lines=True, skiprows=[0, 2])
-        .dropna(how="all")
-        .dropna(axis=1, how="all")
-    )
-
-    df = df.set_index(df.columns[0]).rename(columns=lambda x: x.strip())[
-        ["Headline", "Description/links"]
-    ]
-
-    df.columns = ["title", "links"]
-    return df
-
-
-@st.cache_data
-def download_incidents_repository():
-    AIAAIC_SHEET_ID = "1Bn55B4xz21-_Rgdr8BBb2lt0n_4rzLGxFADMlVW0PYI"
-    AIAAIC_SHEET_NAME = "Repository"
-
-    url = f"https://docs.google.com/spreadsheets/d/{AIAAIC_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={AIAAIC_SHEET_NAME}"
-    df = (
-        pd.read_csv(url, skip_blank_lines=True)
-        .dropna(how="all")
-        .dropna(axis=1, how="all")
-    )
-
-    df = df.set_index(df.columns[0]).rename(columns=lambda x: x.strip())[
-        ["Headline/title", "Description/links"]
-    ]
-
-    df.columns = ["title", "links"]
-    return df
-
-
-@st.cache_data(show_spinner="Fetching more information about the incident...")
-def scrap_incident_description(link):
-    soup = BeautifulSoup(requests.get(link).text, "html.parser")
-
-    # This is dangeriously hard-coded.
-    description = soup.find_all(
-        # class_="hJDwNd-AhqUyc-uQSCkd Ft7HRd-AhqUyc-uQSCkd purZT-AhqUyc-II5mzb ZcASvf-AhqUyc-II5mzb pSzOP-AhqUyc-qWD73c Ktthjf-AhqUyc-qWD73c JNdkSc SQVYQc"
-        class_="hJDwNd-AhqUyc-uQSCkd Ft7HRd-AhqUyc-uQSCkd jXK9ad D2fZ2 zu5uec OjCsFc dmUFtb wHaque g5GTcb"
-    )
-
-    header_pattern = r"^(#+)\s+(.*)"
-    description = markdownify("\n".join((str(i) for i in description[1:-1])))
-    description = re.sub(header_pattern, r"#### \2", description)
-    # st.code(description)
-
-    return description.replace("### ", "##### ")
-
-
-def get_deepest_text(tag):
-    if tag.string:
-        return tag.string.strip()  # Return text if it's a text node
-
-    # Recursive search for text within children
-    for child in tag.children:
-        text = get_deepest_text(child)
-        if text:
-            return text
-
-    return None
-
-
-@st.cache_data(show_spinner="Fetching the list of links on the incident...")
-def get_list_of_media_links(page_url):
-    soup = BeautifulSoup(requests.get(page_url).text, "html.parser")
-    section = soup.find(string=re.compile(", commentar"))
-    if not section:
-        section = soup.find(string=re.compile("act check 🚩"))
-    if section:
-        li_list = section.find_next("ul").find_all("li")
-        # links = [get_deepest_text(li) for li in li_list]
-        return markdownify("\n".join(str(i) for i in li_list))
-    else:
-        return ""
 
 
 st.markdown("# ✍🏻 ")
@@ -184,6 +63,25 @@ except Exception as e:
         "Try to refresh the page. If the problem persists please inform us via Slack."
     )
     st.stop()
+
+
+taxonomy_mindmap = """
+---
+markmap:
+    colorFreezeLevel: 2
+---
+# AI Harm Taxonomy
+"""
+for k, v in harm_categories.items():
+    taxonomy_mindmap += f"## {k}\n"
+    for i in v:
+        taxonomy_mindmap += f"### {i}\n"
+
+with st.sidebar:
+    st.divider()
+    st.subheader("Taxonomy overview", help="Zoom and scroll for more details")
+    markmap(taxonomy_mindmap)
+
 
 with st.container(border=False):
     try:
