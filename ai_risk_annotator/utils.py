@@ -179,7 +179,12 @@ def scrap_incident_description(link):
     description = re.sub(header_pattern, r"#### \2", description)
     # st.code(description)
 
-    return description.replace("### ", "##### ")
+    st.code(description)
+    description = description.replace(
+        "](/aiaaic-repository",
+        "](https://www.aiaaic.org/aiaaic-repository",
+    ).replace("### ", "##### ")
+    return description
 
 
 def get_deepest_text(tag):
