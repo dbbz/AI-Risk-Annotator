@@ -43,7 +43,6 @@ def get_results(_conn) -> pd.DataFrame:
         )
         .dropna(how="all", axis=0)
         .dropna(how="all", axis=1)
-        .drop("timestamp", axis=1)
     )
     # df_results.timestamp = pd.to_datetime(df_results.timestamp, unit="s")
     df_results.datetime = pd.to_datetime(df_results.datetime)
@@ -63,8 +62,21 @@ with st.sidebar:
 
     st.divider()
 
+    col, _ = st.columns([10, 1])
+    col.plotly_chart(
+        df_results["datetime"]
+        .value_counts(sort=True, ascending=True)
+        .plot(kind="barh", height=300)
+        .update_layout(
+            showlegend=False,
+            xaxis={"title": "", "visible": True, "showticklabels": True},
+            yaxis={"title": "", "visible": True, "showticklabels": True},
+        ),
+        use_container_width=True,
+    )
     min_date = df_results.datetime.min().date() - pd.Timedelta(days=1)
     max_date = df_results.datetime.max().date() + pd.Timedelta(days=1)
+
     selected_dates = st.slider(
         "Filtering timeline",
         min_value=min_date,
@@ -371,8 +383,9 @@ try:
     task_harm = agreement.AnnotationTask()
     task_harm.load_array(annots_harm)
     alpha_harm = task_harm.alpha()
-except:
+except Exception as e:
     st.info("The agreement analysis requires more than annotations.")
+    st.toast(e)
     # st.stop()
 else:
     st.markdown("### Agreement analysis")
