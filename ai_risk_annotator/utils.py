@@ -177,9 +177,7 @@ def scrap_incident_description(link):
     header_pattern = r"^(#+)\s+(.*)"
     description = markdownify("\n".join((str(i) for i in description[1:-1])))
     description = re.sub(header_pattern, r"#### \2", description)
-    # st.code(description)
 
-    st.code(description)
     description = description.replace(
         "](/aiaaic-repository",
         "](https://www.aiaaic.org/aiaaic-repository",
