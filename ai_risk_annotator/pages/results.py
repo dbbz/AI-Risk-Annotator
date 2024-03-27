@@ -23,7 +23,7 @@ pd.options.plotting.backend = "plotly"
 create_side_menu()
 
 st.markdown("# 📈")
-st.markdown("""### Results""")
+# st.markdown("""### Results""")
 
 if not check_password():
     st.stop()
@@ -106,6 +106,8 @@ if selected_incident:
     df_results = df_results[df_results.incident_ID == selected_incident]
 
 
+agreement_container = st.container()
+
 # Show the results tbale
 # st.dataframe(df_results, use_container_width=True, hide_index=True)
 
@@ -141,7 +143,7 @@ def plot_counts(df: pd.DataFrame, column: str) -> None:
         .to_frame(name="count")
         .reset_index()
     )
-    st.dataframe(df_counts.set_index(column).sort_values(by="count", ascending=False))
+    # st.dataframe(df_counts.set_index(column).sort_values(by="count", ascending=False))
     st.plotly_chart(
         df_counts.set_index(column)["count"]
         .sort_values(ascending=True)
@@ -388,8 +390,8 @@ except Exception as e:
     st.toast(e)
     # st.stop()
 else:
-    st.markdown("### Agreement analysis")
-    st.markdown("Krippendorf's alpha for agreement")
-    col_1, col_2 = st.columns(2)
-    col_1.metric("on stakeholders", f"{alpha_stakeholder:.3f}")
-    col_2.metric("on actual harm", f"{alpha_harm:.3f}")
+    with agreement_container:
+        st.markdown("### Agreement analysis", help="Krippendorf's alpha for agreement")
+        col_1, col_2 = st.columns(2)
+        col_1.metric("on stakeholders", f"{alpha_stakeholder:.3f}")
+        col_2.metric("on actual harm", f"{alpha_harm:.3f}")
