@@ -63,6 +63,7 @@ with st.sidebar:
     st.divider()
 
     col, _ = st.columns([10, 1])
+
     col.plotly_chart(
         df_results["datetime"]
         .value_counts(sort=True, ascending=True)
@@ -85,6 +86,11 @@ with st.sidebar:
         format="YYYY-MM-DD",
     )
 
+    df_results = df_results.loc[
+        (df_results.datetime >= pd.to_datetime(selected_dates[0]))
+        & (df_results.datetime <= pd.to_datetime(selected_dates[1]))
+    ]
+
     st.divider()
     toggle_incident_filtering = st.toggle("Filter on incidents")
     selected_incident = None
@@ -96,11 +102,6 @@ with st.sidebar:
             label_visibility="collapsed",
             captions=repository.loc[df_results.incident_ID.unique(), "title"].to_list(),
         )
-
-df_results = df_results.loc[
-    (df_results.datetime >= pd.to_datetime(selected_dates[0]))
-    & (df_results.datetime <= pd.to_datetime(selected_dates[1]))
-]
 
 if selected_incident:
     df_results = df_results[df_results.incident_ID == selected_incident]
@@ -138,17 +139,11 @@ agreement_container = st.container()
 
 def plot_counts(df: pd.DataFrame, column: str) -> None:
     df_counts = (
-        df.groupby(["incident_ID", "annotator"])[column]
-        .value_counts(sort=True, ascending=True)
-        .to_frame(name="count")
-        .reset_index()
+        df[column].value_counts(sort=True, ascending=True).to_frame(name="count")
     )
-    # st.dataframe(df_counts.set_index(column).sort_values(by="count", ascending=False))
+
     st.plotly_chart(
-        df_counts.set_index(column)["count"]
-        .sort_values(ascending=True)
-        .plot(kind="barh")
-        .update_layout(
+        df_counts.plot(kind="barh").update_layout(
             showlegend=False,
             xaxis={"title": "", "visible": True, "showticklabels": True},
             yaxis={"title": "", "visible": True, "showticklabels": True},
@@ -156,8 +151,46 @@ def plot_counts(df: pd.DataFrame, column: str) -> None:
         use_container_width=True,
     )
 
+    ####
 
-tabs_list = ["Stakeholders", "Harm subcategory", "Harm category", "Harm type"]
+    # group_columns = [
+    #     "annotator",
+    #     "incident_ID",
+    #     "stakeholders",
+    #     "harm_category",
+    #     "harm_subcategory",
+    #     "harm_type",
+    # ]
+    # group_columns.remove(column)
+
+    # df_counts = (
+    #     df.groupby(["incident_ID", "annotator", column])
+    #     .value_counts(sort=True, ascending=True)
+    #     .to_frame(name="count")
+    #     .reset_index()
+    # )
+    # df_counts
+
+    # st.plotly_chart(
+    #     df_counts.set_index(column)["count"]
+    #     .sort_values(ascending=True)
+    #     .plot(kind="barh")
+    #     .update_layout(
+    #         showlegend=False,
+    #         xaxis={"title": "", "visible": True, "showticklabels": True},
+    #         yaxis={"title": "", "visible": True, "showticklabels": True},
+    #     ),
+    #     use_container_width=True,
+    # )
+
+
+tabs_list = [
+    "Annotator",
+    "Stakeholders",
+    "Harm subcategory",
+    "Harm category",
+    "Harm type",
+]
 tabs = st.tabs(["Sankey"] + tabs_list + ["Comments"])
 for i, t in enumerate(tabs_list):
     with tabs[i + 1]:
@@ -233,14 +266,14 @@ def gen_sankey(df, cat_cols=[], value_cols="", title="Sankey Diagram"):
 
 with tabs[0]:
     sankey_vars = list(map(lambda x: x.lower().replace(" ", "_"), tabs_list))
-    sankey_vars.insert(1, "incident_ID")
+    sankey_vars.insert(0, "incident_ID")
     sankey_vars.remove("harm_type")
 
     sankey_vars = st.multiselect(
         "Choose at least two columns to plot",
         sankey_vars,
         default=sankey_vars,
-        max_selections=4,
+        max_selections=5,
         help="💡 Use the text filters for better plots.",
     )
 
