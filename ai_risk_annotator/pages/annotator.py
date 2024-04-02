@@ -318,29 +318,6 @@ for stakeholder in impacted_stakeholders:
 
             with sub_right:
                 with st.container(border=True):
-                    harm_type_help_text = """
-- **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
-- **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
-                    """
-                    st.markdown(
-                        f"Is the `{harm_cat}` harm(s) on `{stakeholder}` actual or potential?",
-                        help=harm_type_help_text,
-                    )
-                    if show_descriptions:
-                        st.caption(harm_type_help_text)
-
-                    key = f"{incident}__{stakeholder}__{harm_cat}__harm_type"
-                    if key in st.session_state:
-                        st.session_state[key] = st.session_state[key]
-
-                    harm_type = st.selectbox(
-                        "incident_type",
-                        ["Actual", "Potential"],
-                        index=None,
-                        key=key,
-                        label_visibility="collapsed",
-                    )
-
                     key = f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory"
                     if key in st.session_state:
                         st.session_state[key] = st.session_state[key]
@@ -378,6 +355,29 @@ for stakeholder in impacted_stakeholders:
                             label_visibility="collapsed",
                             key=key,
                         )
+
+                    harm_type_help_text = """
+- **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+- **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+                    """
+                    st.markdown(
+                        f"Is this `{harm_cat}` harm on `{stakeholder}` actual or potential?",
+                        help=harm_type_help_text,
+                    )
+                    if show_descriptions:
+                        st.caption(harm_type_help_text)
+
+                    key = f"{incident}__{stakeholder}__{harm_cat}__harm_type"
+                    if key in st.session_state:
+                        st.session_state[key] = st.session_state[key]
+
+                    harm_type = st.selectbox(
+                        "incident_type",
+                        ["Actual", "Potential"],
+                        index=None,
+                        key=key,
+                        label_visibility="collapsed",
+                    )
 
                     key = f"{incident}__{stakeholder}__{harm_cat}__notes"
                     if key in st.session_state:
