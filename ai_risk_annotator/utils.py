@@ -2,6 +2,7 @@ import hmac
 import pickle
 import re
 
+import html2text
 import pandas as pd
 import requests
 import streamlit as st
@@ -16,6 +17,7 @@ def create_side_menu():
         st.page_link("app.py", label="Instructions", icon="📖")
         st.page_link("pages/annotator.py", label="Annotator", icon="✍🏻")
         st.page_link("pages/results.py", label="Results", icon="📈")
+        st.page_link("pages/automatic.py", label="LLM", icon="🦜")
 
 
 def switch_page(page_name: str):
@@ -206,8 +208,9 @@ def get_list_of_media_links(page_url):
         section = soup.find(string=re.compile("act check 🚩"))
     if section:
         li_list = section.find_next("ul").find_all("li")
+        results = markdownify("\n".join(str(i) for i in li_list))
         # links = [get_deepest_text(li) for li in li_list]
-        return markdownify("\n".join(str(i) for i in li_list))
+        return results
     else:
         return ""
 
@@ -294,3 +297,28 @@ def get_annotated_incidents(_conn):
         .to_dict()
     )
     return df_annotations
+
+
+@st.cache_data(ttl=3600, show_spinner="Fetching the list of links on the incident...")
+def get_list_of_links(page_url):
+    soup = BeautifulSoup(requests.get(page_url).text, "html.parser")
+    section = soup.find(string=re.compile(", commentar"))
+
+    if not section:
+        section = soup.find(string=re.compile("act check 🚩"))
+    if section:
+        li_list = section.find_next("ul").find_all("li")
+        # results = markdownify("\n".join(str(i) for i in li_list))
+        results = [html2text.html2text(str(i)) for i in li_list]
+
+        pattern = r"\[([^][]*)\]\(([^()]*)\)"
+        urls = []
+        for link in results:
+            match = re.search(pattern, link)
+            if match:
+                urls.append(match.group(2))
+
+        # links = [get_deepest_text(li) for li in li_list]
+        return urls
+    else:
+        return []
