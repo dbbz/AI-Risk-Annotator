@@ -60,6 +60,7 @@ def get_available_local_llms():
     )
 
 
+# deprecated
 def stream_chat(model, messages):
     response_generator = (
         chunk["message"]["content"]
@@ -76,7 +77,7 @@ def stream_chat(model, messages):
     return response
 
 
-@st.cache_data(ttl=3600, show_spinner="Parsing the web page...")
+@st.cache_data(ttl=3600, show_spinner="Parsing the downlaoded web page...")
 def extract_content(links_list, WORD_LIMIT):
     pages = [fetch_url(link) for link in links_list]
     results = [extract(page, include_comments=False) for page in pages]
@@ -86,3 +87,39 @@ def extract_content(links_list, WORD_LIMIT):
     results = sorted(results, reverse=True, key=lambda x: len(x))
 
     return results
+
+
+def call_ollama_chat(selected_llm, prompt, store_prompt=True, write_answer=True):
+    if store_prompt:
+        st.chat_message("user").write(prompt)
+    st.session_state.chat_history[selected_llm].append(
+        {"role": "user", "content": prompt, "show": store_prompt}
+    )
+    try:
+        response_generator = (
+            chunk["message"]["content"]
+            for chunk in ollama.chat(
+                model=selected_llm,
+                messages=st.session_state.chat_history[selected_llm],
+                stream=True,
+            )
+        )
+
+        if write_answer:
+            with st.chat_message("assistant"):
+                response = st.write_stream(response_generator)
+
+        st.session_state.chat_history[selected_llm].append(
+            {"role": "assistant", "content": response, "show": store_prompt}
+        )
+    except ollama.ResponseError as e:
+        st.error(
+            "Cannot connect to your local LLM. Please check that Ollama is running in the background"
+        )
+        st.error(e.error)
+        if e.status_code == 404:
+            with st.spinner("Downloading the model weights..."):
+                ollama.pull(selected_llm)
+        else:
+            st.stop()
+    return response
