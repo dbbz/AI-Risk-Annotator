@@ -18,8 +18,8 @@ def create_side_menu():
         st.page_link("pages/annotator.py", label="Annotator", icon="✍🏻")
         st.page_link("pages/results.py", label="Results", icon="📈")
 
-        # if "debug_mode" in st.secrets and st.secrets["debug_mode"]:
-        st.page_link("pages/automatic.py", label="LLM", icon="🦜")
+        if "debug_mode" in st.secrets and st.secrets["debug_mode"]:
+            st.page_link("pages/automatic.py", label="LLM", icon="🦜")
 
 
 def switch_page(page_name: str):
