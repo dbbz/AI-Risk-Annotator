@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from streamlit_markmap import markmap
-from form import display_question
+from form import display_question, stop_condition
 from utils import (
     check_password,
     columns,
@@ -17,7 +17,6 @@ from utils import (
     load_extra_data,
     read_incidents_repository_from_file,
     scrap_incident_description,
-    # stakeholders,
     switch_page,
 )
 
@@ -35,7 +34,6 @@ st.markdown(
 )
 
 ANNOTATED_CAPTION = "Annotated ✔️"
-
 
 st.markdown("# ✍🏻 ")
 st.markdown("### Annotations")
@@ -58,7 +56,7 @@ except Exception as e:
     st.stop()
 
 try:
-    harm_categories, harm_categories_descriptions = get_harm_descriptions(conn)
+    harm_categories, harm_descriptions = get_harm_descriptions(conn)
 except Exception as e:
     st.error("Cannot connect to Google Sheets. Error: " + str(e))
     st.info(
@@ -104,6 +102,8 @@ with st.container(border=False):
         index=st.session_state.current_user,
         label_visibility="collapsed",
     )
+
+    SUBMIT_BUTTON_MESSAGE = f"Submit your answers as **{user}**"
 
     if not user:
         st.stop()
@@ -196,14 +196,8 @@ st.divider()
 with st.container(border=False):
     incident_page = repository.loc[incident, "links"]
     st.markdown("##### Incident: " + repository.loc[incident, "title"])
-    # if incident in descriptions:
-    #     st.info(descriptions[incident])
-    # else:
     with st.container(height=None, border=False):
         st.info(scrap_incident_description(incident_page))
-
-    # st.markdown("##### Links")
-    # st.warning(get_list_of_media_links(incident_page))
 
     st.page_link(
         incident_page,
@@ -225,55 +219,22 @@ stakeholders_description = ""
 for k, v in stakeholders.items():
     stakeholders_description += f"- **{k}**: {v}\n"
 
-impacted_stakeholders = []
 
-stakeholders_container = st.container(border=True)
-primary_impacted_stakeholder = display_question(
-    incident_id=incident,
+impacted_stakeholders = display_question(
+    key_prefix=incident,
     question="Who are the :red[primary] impacted stakeholders?",
     description=stakeholders_description,
-    widget_cls=st.selectbox,
-    widget_kwargs={"options": stakeholders.keys(), "index": None},
-    container=stakeholders_container,  # st.container(border=True),
+    widget_cls=st.multiselect,
+    widget_kwargs=dict(options=stakeholders.keys(), default=None),
+    container=st.container(border=True),
     help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
     + stakeholders_description,
     show_descriptions=show_descriptions,
 )
 
-if primary_impacted_stakeholder:
-    impacted_stakeholders.append(primary_impacted_stakeholder)
-    other_impacted_stakeholder = display_question(
-        incident_id=incident,
-        question="Are there :orange[other] impacted stakeholders? (by decreasing order of importance)",
-        description=None,
-        widget_cls=st.multiselect,
-        widget_kwargs={
-            "options": [
-                elem
-                for elem in stakeholders.keys()
-                if elem != primary_impacted_stakeholder
-            ],
-            "default": None,
-        },
-        container=stakeholders_container,
-        help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
-        + stakeholders_description,
-        show_descriptions=show_descriptions,
-    )
-
-    impacted_stakeholders.extend(other_impacted_stakeholder)
-
-if not impacted_stakeholders:
-    submitted = st.button(
-        f"Annotator: **{user}** | Submit your answers",
-        type="primary",
-        use_container_width=True,
-        disabled=True,
-    )
-    st.stop()
+stop_condition(not impacted_stakeholders, SUBMIT_BUTTON_MESSAGE)
 
 results = {}
-
 
 for stakeholder in impacted_stakeholders:
     left, right = st.columns((1, 35))
@@ -282,140 +243,110 @@ for stakeholder in impacted_stakeholders:
 
     with right:
         harm_category_section = st.container(border=True)
-        with harm_category_section:
-            harm_category_help_text = ""
-            filtered_harm_description = harm_categories_descriptions.loc[
-                harm_categories.keys()
-            ].to_dict()
-            for k, v in filtered_harm_description.items():
-                harm_category_help_text += f"- **{k}**: {v}\n"
 
-            st.markdown(
-                f"Which :violet[category] of harms impacts `{stakeholder}`? *(multiple options are possible)*",
-                help=harm_category_help_text,
-            )
+        harm_categories_description = ""
+        subset_harm_categories = harm_descriptions.loc[harm_categories.keys()].to_dict()
+        for k, v in subset_harm_categories.items():
+            harm_categories_description += f"- **{k}**: {v}\n"
 
-            if show_descriptions:
-                st.caption(harm_category_help_text)
-
-            # below is a trick to prevent streamlit from deleting previous answers
-            # had they disappeared from the screen temporarily
-            key = f"{incident}__{stakeholder}__harm_category"
-            if key in st.session_state:
-                st.session_state[key] = st.session_state[key]
-
-            harm_category = st.multiselect(
-                "harm_category",
-                list(harm_categories.keys()) + ["Other"],
+        selected_harm_categories = display_question(
+            key_prefix=incident + "_" + stakeholder,
+            question=f"Which :violet[category] of harms impacts `{stakeholder}`? *(multiple options are possible)*",
+            description=harm_categories_description,
+            widget_cls=st.multiselect,
+            widget_kwargs=dict(
+                options=list(harm_categories.keys()) + ["Other"],
                 default=None,
-                label_visibility="collapsed",
-                key=key,
-            )
-    if not harm_category:
-        submitted = st.button(
-            f"Annotator: **{user}** | Submit your answers",
-            type="primary",
-            use_container_width=True,
-            disabled=True,
+            ),
+            container=harm_category_section,
+            help_text=harm_categories_description,
+            show_descriptions=show_descriptions,
         )
-        st.stop()
 
-    for harm_cat in harm_category:
+    stop_condition(not selected_harm_categories, SUBMIT_BUTTON_MESSAGE)
+
+    for harm_category in selected_harm_categories:
         with right:
             sub_left, sub_right = st.columns((1, 35))
             sub_left.write("↳")
 
             with sub_right:
-                with st.container(border=True):
-                    key = f"{incident}__{stakeholder}__{harm_cat}__harm_subcategory"
-                    if key in st.session_state:
-                        st.session_state[key] = st.session_state[key]
+                harm_subcategories_container = st.container(border=True)
 
-                    if harm_cat == "Other":
-                        st.markdown(
-                            f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`?",
-                        )
-
-                        harm_subcategory = st.text_input(
-                            "harm_subcategory", label_visibility="collapsed", key=key
-                        )
-                    else:
-                        harm_category_help_text = (
-                            "Example: \n" if harm_cat == "Other" else ""
-                        )
-                        filtered_harm_description = harm_categories_descriptions.loc[
-                            harm_categories[harm_cat]
-                        ].to_dict()
-                        for k, v in filtered_harm_description.items():
-                            harm_category_help_text += f"- **{k}**: {v}\n"
-
-                        st.markdown(
-                            f"Which :orange[specific] `{harm_cat}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                            help=harm_category_help_text,
-                        )
-
-                        if show_descriptions:
-                            st.caption(harm_category_help_text)
-
-                        harm_subcategory = st.multiselect(
-                            "harm_subcategory",
-                            harm_categories[harm_cat],
+                harm_subcategories_prefix = (
+                    f"{incident}__{stakeholder}__{harm_category}"
+                )
+                if harm_category == "Other":
+                    selected_harm_subcategories = display_question(
+                        key_prefix=harm_subcategories_prefix,
+                        question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`?",
+                        widget_cls=st.text_input,
+                        container=harm_subcategories_container,
+                    )
+                else:
+                    harm_subcategories_description = ""
+                    subset_harm_subcategories = harm_descriptions.loc[
+                        harm_categories[harm_category]
+                    ].to_dict()
+                    for k, v in subset_harm_subcategories.items():
+                        harm_subcategories_description += f"- **{k}**: {v}\n"
+                    selected_harm_subcategories = display_question(
+                        key_prefix=harm_subcategories_prefix,
+                        question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
+                        description=harm_subcategories_description,
+                        widget_cls=st.multiselect,
+                        widget_kwargs=dict(
+                            options=harm_categories[harm_category],
                             default=None,
-                            label_visibility="collapsed",
-                            key=key,
-                        )
-
-                    harm_type_help_text = """
-- **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
-- **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
-                    """
-                    st.markdown(
-                        f"Is this `{harm_cat}` harm on `{stakeholder}` actual or potential?",
-                        help=harm_type_help_text,
+                        ),
+                        container=harm_subcategories_container,
+                        help_text=harm_subcategories_description,
+                        show_descriptions=show_descriptions,
                     )
-                    if show_descriptions:
-                        st.caption(harm_type_help_text)
 
-                    key = f"{incident}__{stakeholder}__{harm_cat}__harm_type"
-                    if key in st.session_state:
-                        st.session_state[key] = st.session_state[key]
-
-                    harm_type = st.selectbox(
-                        "incident_type",
-                        ["Actual", "Potential"],
+                harm_type_help_text = """
+                - **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+                - **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+                """
+                harm_type = display_question(
+                    key_prefix=f"{incident}__{stakeholder}__{harm_category}",
+                    question=f"Is this `{harm_category}` harm on `{stakeholder}` actual or potential?",
+                    description=harm_type_help_text,
+                    widget_cls=st.selectbox,
+                    widget_kwargs=dict(
+                        options=["Actual", "Potential"],
                         index=None,
-                        key=key,
-                        label_visibility="collapsed",
-                    )
+                    ),
+                    container=harm_subcategories_container,
+                    help_text=harm_type_help_text,
+                    show_descriptions=show_descriptions,
+                )
 
-                    key = f"{incident}__{stakeholder}__{harm_cat}__notes"
-                    if key in st.session_state:
-                        st.session_state[key] = st.session_state[key]
+                notes = display_question(
+                    key_prefix=f"{incident}__{stakeholder}__{harm_category}",
+                    question="*[Optional]* Notes",
+                    widget_cls=st.text_area,
+                    widget_kwargs=dict(
+                        placeholder="E.g. missing, overlapping or unclear harm type names or definitions."
+                    ),
+                    container=harm_subcategories_container,
+                )
 
-                    with st.container(border=False):
-                        st.markdown("*[Optional]* Notes")
-                        notes = st.text_area(
-                            "Further notes",
-                            placeholder="E.g. missing, overlapping or unclear harm type names or definitions.",
-                            label_visibility="collapsed",
-                            key=key,
-                        )
-
-        if not harm_subcategory or not harm_type:
-            submitted = st.button(
-                f"Annotator: **{user}** | Submit your answers",
-                type="primary",
-                use_container_width=True,
-                disabled=True,
-            )
-            st.stop()
-        results[stakeholder][harm_cat] = (harm_subcategory, notes, harm_type)
+        stop_condition(
+            not selected_harm_subcategories or not harm_type, SUBMIT_BUTTON_MESSAGE
+        )
+        results[stakeholder][harm_category] = (
+            selected_harm_subcategories,
+            notes,
+            harm_type,
+        )
 
 submitted = st.button(
-    f"Annotator: **{user}** | Submit your answers",
+    SUBMIT_BUTTON_MESSAGE,
     type="primary",
     use_container_width=True,
 )
+
 if submitted:
     current_datetime = datetime.datetime.now()
     timestamp = int(current_datetime.timestamp())
@@ -424,7 +355,7 @@ if submitted:
 
     tabular_results = []
     for stakeholder, harm in results.items():
-        for harm_cat, (harm_subcat_list, notes, harm_type) in harm.items():
+        for harm_category, (harm_subcat_list, notes, harm_type) in harm.items():
             for harm_subcat in harm_subcat_list:
                 tabular_results.append(
                     [
@@ -432,7 +363,7 @@ if submitted:
                         user,
                         incident,
                         stakeholder,
-                        harm_cat,
+                        harm_category,
                         harm_subcat,
                         harm_type,
                         notes,
@@ -475,26 +406,6 @@ if submitted:
                 use_container_width=True,
             )
             st.stop()
-
-        # try:
-        #     user_worksheet_name = "user_" + user
-        #     df_backup = (
-        #         conn.read(
-        #             worksheet=user_worksheet_name,
-        #             data=df_update,
-        #             date_formatstr="%Y-%m-%d",
-        #         )
-        #         .dropna(how="all", axis=0)
-        #         .dropna(how="all", axis=1)
-        #     )
-
-        # except Exception as e:
-        #     conn.create(worksheet=user_worksheet_name, data=df_update)
-        # else:
-        #     conn.update(
-        #         worksheet=user_worksheet_name,
-        #         data=pd.concat([df_backup, df_update], ignore_index=True),
-        #     )
 
     st.toast(
         "Your answers were submitted. You can select another incident to annotate."

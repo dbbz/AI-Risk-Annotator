@@ -9,6 +9,8 @@ import streamlit as st
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
+TTL = 30 * 60
+
 
 def create_side_menu():
     with st.sidebar:
@@ -96,7 +98,7 @@ columns = [
 
 # Load the incidents descriptions and related links
 # scrapped from the AIAAIC website as they are not in the sheet
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=TTL)
 def load_extra_data():
     with open("descriptions.pickle", "rb") as f:
         descriptions = pickle.load(f)
@@ -129,7 +131,7 @@ def download_public_sheet_as_csv(csv_url, filename="downloaded_sheet.csv"):
 # It used to be downloaded from the online repo
 # but due to frequent changes in the sheet format
 # I ended up using an offline (potentially not up to date) version
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=TTL)
 def read_incidents_repository_from_file():
     download_public_sheet_as_csv(
         "https://docs.google.com/spreadsheets/d/1Bn55B4xz21-_Rgdr8BBb2lt0n_4rzLGxFADMlVW0PYI/export?format=csv&gid=888071280"
@@ -148,7 +150,7 @@ def read_incidents_repository_from_file():
     return df
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=TTL)
 def download_incidents_repository():
     AIAAIC_SHEET_ID = "1Bn55B4xz21-_Rgdr8BBb2lt0n_4rzLGxFADMlVW0PYI"
     AIAAIC_SHEET_NAME = "Repository"
@@ -168,7 +170,7 @@ def download_incidents_repository():
     return df
 
 
-@st.cache_data(ttl=3600, show_spinner="Fetching more information about the incident...")
+@st.cache_data(ttl=TTL, show_spinner="Fetching more information about the incident...")
 def scrap_incident_description(link):
     soup = BeautifulSoup(requests.get(link).text, "html.parser")
 
@@ -202,7 +204,7 @@ def get_deepest_text(tag):
     return None
 
 
-@st.cache_data(ttl=3600, show_spinner="Fetching the list of links on the incident...")
+@st.cache_data(ttl=TTL, show_spinner="Fetching the list of links on the incident...")
 def get_list_of_media_links(page_url):
     soup = BeautifulSoup(requests.get(page_url).text, "html.parser")
     section = soup.find(string=re.compile(", commentar"))
@@ -219,7 +221,7 @@ def get_list_of_media_links(page_url):
 
 # The list of annotators (or the initials thereof)
 @st.cache_data(
-    ttl=3600, show_spinner="Reading the annotators' list from Google Sheets..."
+    ttl=TTL, show_spinner="Reading the annotators' list from Google Sheets..."
 )
 def get_annotators(_conn):
     df_annotators = (
@@ -235,7 +237,7 @@ def get_annotators(_conn):
 
 
 @st.cache_data(
-    ttl=3600, show_spinner="Reading the annotators' list from Google Sheets..."
+    ttl=TTL, show_spinner="Reading the annotators' list from Google Sheets..."
 )
 def get_stakeholders(_conn):
     df_stakeholders = (
@@ -267,7 +269,7 @@ stakeholders = {
 
 
 @st.cache_data(
-    ttl=3600, show_spinner="Reading the AI harm taxonomy from Google Sheets..."
+    ttl=TTL, show_spinner="Reading the AI harm taxonomy from Google Sheets..."
 )
 def get_harm_descriptions(_conn):
     df_harms = (
@@ -290,7 +292,7 @@ def get_harm_descriptions(_conn):
 
 
 @st.cache_data(
-    ttl=3600, show_spinner="Reading the incidents short-list from Google Sheets..."
+    ttl=TTL, show_spinner="Reading the incidents short-list from Google Sheets..."
 )
 def get_incidents_list(_conn):
     df_shortlist = (
@@ -303,7 +305,7 @@ def get_incidents_list(_conn):
 
 
 @st.cache_data(
-    ttl=3600, show_spinner="Reading the old annotations from Google Sheets..."
+    ttl=TTL, show_spinner="Reading the old annotations from Google Sheets..."
 )
 def get_annotated_incidents(_conn):
     df_annotations = (
@@ -320,7 +322,7 @@ def get_annotated_incidents(_conn):
     return df_annotations
 
 
-@st.cache_data(ttl=3600, show_spinner="Fetching the list of links on the incident...")
+@st.cache_data(ttl=TTL, show_spinner="Fetching the list of links on the incident...")
 def get_list_of_links(page_url):
     soup = BeautifulSoup(requests.get(page_url).text, "html.parser")
     section = soup.find(string=re.compile(", commentar"))
