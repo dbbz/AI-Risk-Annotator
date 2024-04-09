@@ -1,3 +1,4 @@
+from typing import Any
 import streamlit as st
 
 TTL = 30 * 60
@@ -5,15 +6,15 @@ TTL = 30 * 60
 
 def display_question(
     *,
-    question,
-    widget_cls,
-    key_prefix="",
-    widget_kwargs=None,
-    description=None,
-    container=None,
+    question: str,
+    widget_cls: Any,
+    key_prefix: str = "",
+    widget_kwargs: dict = None,
+    description: str = None,
+    container: st.delta_generator.DeltaGenerator = None,
     help_text=None,
     show_descriptions=True,
-):
+) -> list | str:
     container = container or st.container(border=False)
     with container:
         st.markdown(
@@ -40,7 +41,7 @@ def display_question(
     return result
 
 
-def stop_condition(condition, submit_message):
+def stop_condition(condition: bool, submit_message: str) -> None:
     if condition:
         st.button(
             submit_message,
