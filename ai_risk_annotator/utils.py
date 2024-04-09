@@ -234,6 +234,25 @@ def get_annotators(_conn):
     return df_annotators["Annotators"].to_list()
 
 
+@st.cache_data(
+    ttl=3600, show_spinner="Reading the annotators' list from Google Sheets..."
+)
+def get_stakeholders(_conn):
+    df_stakeholders = (
+        _conn.read(
+            worksheet="Stakeholders",
+            ttl=0,
+            usecols=[0, 1],
+        )
+        .dropna(how="all", axis=0)
+        .dropna(how="all", axis=1)
+    )
+    return {
+        d["Stakeholder"]: d["Definition"]
+        for d in df_stakeholders.to_dict(orient="records")
+    }
+
+
 # The list of impacted stakeholders
 stakeholders = {
     "Users": "Individuals or entities directly interacting with a system, or those being directly targeted by it, such as citizens, consumers, patients, students, employees, delivery drivers, job applicants, travellers, immigrants",

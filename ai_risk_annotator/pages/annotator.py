@@ -12,10 +12,11 @@ from utils import (
     get_annotators,
     get_harm_descriptions,
     get_incidents_list,
+    get_stakeholders,
     load_extra_data,
     read_incidents_repository_from_file,
     scrap_incident_description,
-    stakeholders,
+    # stakeholders,
     switch_page,
 )
 
@@ -214,6 +215,7 @@ with st.container(border=False):
 st.divider()
 
 with st.container(border=True):
+    stakeholders = get_stakeholders(conn)
     # Make a string containing the stakeholders descriptions
     stakeholders_help_text = ""
     for k, v in stakeholders.items():
