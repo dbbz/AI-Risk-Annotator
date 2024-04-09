@@ -13,6 +13,16 @@ TTL = 30 * 60
 
 
 def create_side_menu():
+    st.markdown(
+        """
+    <style>
+        .stMultiSelect [data-baseweb=select] span{
+            max-width: 250px;
+        }
+    </style>
+    """,
+        unsafe_allow_html=True,
+    )
     with st.sidebar:
         st.markdown("# AI and Algorithmic Harm Annotator")
         st.divider()

@@ -4,7 +4,13 @@ import pandas as pd
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from streamlit_markmap import markmap
-from form import display_question, stop_condition
+from form import (
+    display_question,
+    stop_condition,
+    Stakeholders,
+    HarmCategories,
+    HarmType,
+)
 from utils import (
     check_password,
     columns,
@@ -22,17 +28,6 @@ from utils import (
 
 st.set_page_config(page_title="AI and Algorithmic Harm Annotator", layout="centered")
 create_side_menu()
-st.markdown(
-    """
-    <style>
-        .stMultiSelect [data-baseweb=select] span{
-            max-width: 250px;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 ANNOTATED_CAPTION = "Annotated ✔️"
 
 st.markdown("# ✍🏻 ")
@@ -55,6 +50,8 @@ except Exception as e:
     )
     st.stop()
 
+
+# stakeholders = Stakeholders().download(conn)
 try:
     harm_categories, harm_descriptions = get_harm_descriptions(conn)
 except Exception as e:
@@ -266,71 +263,66 @@ for stakeholder in impacted_stakeholders:
     stop_condition(not selected_harm_categories, SUBMIT_BUTTON_MESSAGE)
 
     for harm_category in selected_harm_categories:
-        with right:
-            sub_left, sub_right = st.columns((1, 35))
-            sub_left.write("↳")
+        sub_left, sub_right = right.columns((1, 35))
+        sub_left.write("↳")
+        harm_subcategories_container = sub_right.container(border=True)
 
-            with sub_right:
-                harm_subcategories_container = st.container(border=True)
+        harm_subcategories_prefix = f"{incident}__{stakeholder}__{harm_category}"
+        if harm_category == "Other":
+            selected_harm_subcategories = display_question(
+                key_prefix=harm_subcategories_prefix,
+                question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`?",
+                widget_cls=st.text_input,
+                container=harm_subcategories_container,
+            )
+        else:
+            harm_subcategories_description = ""
+            subset_harm_subcategories = harm_descriptions.loc[
+                harm_categories[harm_category]
+            ].to_dict()
+            for k, v in subset_harm_subcategories.items():
+                harm_subcategories_description += f"- **{k}**: {v}\n"
+            selected_harm_subcategories = display_question(
+                key_prefix=harm_subcategories_prefix,
+                question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
+                description=harm_subcategories_description,
+                widget_cls=st.multiselect,
+                widget_kwargs=dict(
+                    options=harm_categories[harm_category],
+                    default=None,
+                ),
+                container=harm_subcategories_container,
+                help_text=harm_subcategories_description,
+                show_descriptions=show_descriptions,
+            )
 
-                harm_subcategories_prefix = (
-                    f"{incident}__{stakeholder}__{harm_category}"
-                )
-                if harm_category == "Other":
-                    selected_harm_subcategories = display_question(
-                        key_prefix=harm_subcategories_prefix,
-                        question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`?",
-                        widget_cls=st.text_input,
-                        container=harm_subcategories_container,
-                    )
-                else:
-                    harm_subcategories_description = ""
-                    subset_harm_subcategories = harm_descriptions.loc[
-                        harm_categories[harm_category]
-                    ].to_dict()
-                    for k, v in subset_harm_subcategories.items():
-                        harm_subcategories_description += f"- **{k}**: {v}\n"
-                    selected_harm_subcategories = display_question(
-                        key_prefix=harm_subcategories_prefix,
-                        question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                        description=harm_subcategories_description,
-                        widget_cls=st.multiselect,
-                        widget_kwargs=dict(
-                            options=harm_categories[harm_category],
-                            default=None,
-                        ),
-                        container=harm_subcategories_container,
-                        help_text=harm_subcategories_description,
-                        show_descriptions=show_descriptions,
-                    )
+        harm_type_help_text = """
+        - **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
+        - **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
+        """
+        harm_type = display_question(
+            key_prefix=f"{incident}__{stakeholder}__{harm_category}",
+            question=f"Is this `{harm_category}` harm on `{stakeholder}` actual or potential?",
+            description=harm_type_help_text,
+            widget_cls=st.selectbox,
+            widget_kwargs=dict(
+                options=["Actual", "Potential"],
+                index=None,
+            ),
+            container=harm_subcategories_container,
+            help_text=harm_type_help_text,
+            show_descriptions=show_descriptions,
+        )
 
-                harm_type_help_text = """
-                - **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
-                - **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
-                """
-                harm_type = display_question(
-                    key_prefix=f"{incident}__{stakeholder}__{harm_category}",
-                    question=f"Is this `{harm_category}` harm on `{stakeholder}` actual or potential?",
-                    description=harm_type_help_text,
-                    widget_cls=st.selectbox,
-                    widget_kwargs=dict(
-                        options=["Actual", "Potential"],
-                        index=None,
-                    ),
-                    container=harm_subcategories_container,
-                    help_text=harm_type_help_text,
-                    show_descriptions=show_descriptions,
-                )
-
-                notes = display_question(
-                    key_prefix=f"{incident}__{stakeholder}__{harm_category}",
-                    question="*[Optional]* Notes",
-                    widget_cls=st.text_area,
-                    widget_kwargs=dict(
-                        placeholder="E.g. missing, overlapping or unclear harm type names or definitions."
-                    ),
-                    container=harm_subcategories_container,
-                )
+        notes = display_question(
+            key_prefix=f"{incident}__{stakeholder}__{harm_category}",
+            question="*[Optional]* Notes",
+            widget_cls=st.text_area,
+            widget_kwargs=dict(
+                placeholder="E.g. missing, overlapping or unclear harm type names or definitions."
+            ),
+            container=harm_subcategories_container,
+        )
 
         stop_condition(
             not selected_harm_subcategories or not harm_type, SUBMIT_BUTTON_MESSAGE
