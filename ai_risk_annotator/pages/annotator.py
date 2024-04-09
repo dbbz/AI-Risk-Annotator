@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from streamlit_markmap import markmap
+from form import display_question
 from utils import (
     check_password,
     columns,
@@ -211,50 +212,56 @@ with st.container(border=False):
         icon="🌐",
     )
 
-# st.markdown("#### Annotations")
 st.divider()
 
-with st.container(border=True):
-    stakeholders = get_stakeholders(conn)
-    # Make a string containing the stakeholders descriptions
-    stakeholders_help_text = ""
-    for k, v in stakeholders.items():
-        stakeholders_help_text += f"- **{k}**: {v}\n"
+########################
+##### Stakeholders #####
+########################
 
-    st.markdown(
-        "Who are the :red[primary] impacted stakeholders?",
-        help="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
-        + stakeholders_help_text,
-    )
-    if show_descriptions:
-        st.caption(stakeholders_help_text)
+# TODO: turn this into a class
+stakeholders = get_stakeholders(conn)
+# Make a string containing the stakeholders descriptions
+stakeholders_description = ""
+for k, v in stakeholders.items():
+    stakeholders_description += f"- **{k}**: {v}\n"
 
-    impacted_stakeholders = []
-    primary_impacted_stakeholder = st.selectbox(
-        "primary_impacted_stakeholders",
-        stakeholders.keys(),
-        index=None,
-        label_visibility="collapsed",
-        key="primary__" + incident + "__impacted",
-    )
+impacted_stakeholders = []
 
-    if primary_impacted_stakeholder:
-        impacted_stakeholders.append(primary_impacted_stakeholder)
-        st.markdown(
-            "Are there :orange[other] impacted stakeholders? (by decreasing order of importance)"
-        )
-        other_impacted_stakeholder = st.multiselect(
-            "other_impacted_stakeholders",
-            [
+stakeholders_container = st.container(border=True)
+primary_impacted_stakeholder = display_question(
+    incident_id=incident,
+    question="Who are the :red[primary] impacted stakeholders?",
+    description=stakeholders_description,
+    widget_cls=st.selectbox,
+    widget_kwargs={"options": stakeholders.keys(), "index": None},
+    container=stakeholders_container,  # st.container(border=True),
+    help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
+    + stakeholders_description,
+    show_descriptions=show_descriptions,
+)
+
+if primary_impacted_stakeholder:
+    impacted_stakeholders.append(primary_impacted_stakeholder)
+    other_impacted_stakeholder = display_question(
+        incident_id=incident,
+        question="Are there :orange[other] impacted stakeholders? (by decreasing order of importance)",
+        description=None,
+        widget_cls=st.multiselect,
+        widget_kwargs={
+            "options": [
                 elem
                 for elem in stakeholders.keys()
                 if elem != primary_impacted_stakeholder
             ],
-            default=None,
-            label_visibility="collapsed",
-            key="other__" + incident + "__impacted",
-        )
-        impacted_stakeholders.extend(other_impacted_stakeholder)
+            "default": None,
+        },
+        container=stakeholders_container,
+        help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
+        + stakeholders_description,
+        show_descriptions=show_descriptions,
+    )
+
+    impacted_stakeholders.extend(other_impacted_stakeholder)
 
 if not impacted_stakeholders:
     submitted = st.button(
