@@ -8,8 +8,7 @@ from form import (
     display_question,
     stop_condition,
     Stakeholders,
-    HarmCategories,
-    HarmType,
+    Harms,
 )
 from utils import (
     check_password,
@@ -17,9 +16,7 @@ from utils import (
     create_side_menu,
     get_annotated_incidents,
     get_annotators,
-    get_harm_descriptions,
     get_incidents_list,
-    get_stakeholders,
     load_extra_data,
     read_incidents_repository_from_file,
     scrap_incident_description,
@@ -51,33 +48,12 @@ except Exception as e:
     st.stop()
 
 
-# stakeholders = Stakeholders().download(conn)
-try:
-    harm_categories, harm_descriptions = get_harm_descriptions(conn)
-except Exception as e:
-    st.error("Cannot connect to Google Sheets. Error: " + str(e))
-    st.info(
-        "Try to refresh the page. If the problem persists please inform us via Slack."
-    )
-    st.stop()
-
-
-taxonomy_mindmap = """
----
-markmap:
-    colorFreezeLevel: 2
----
-# AI Harm Taxonomy
-"""
-for k, v in harm_categories.items():
-    taxonomy_mindmap += f"## {k}\n"
-    for i in v:
-        taxonomy_mindmap += f"### {i}\n"
+harms = Harms().download(conn)
 
 with st.sidebar:
     st.divider()
     st.subheader("Taxonomy overview", help="Zoom and scroll for more details")
-    markmap(taxonomy_mindmap)
+    markmap(harms.mindmap())
 
 
 with st.container(border=False):
@@ -205,32 +181,19 @@ with st.container(border=False):
 
 st.divider()
 
-########################
-##### Stakeholders #####
-########################
-
-# TODO: turn this into a class
-stakeholders = get_stakeholders(conn)
-# Make a string containing the stakeholders descriptions
-stakeholders_description = ""
-for k, v in stakeholders.items():
-    stakeholders_description += f"- **{k}**: {v}\n"
-
-
+stakeholders = Stakeholders().download(conn)
 impacted_stakeholders = display_question(
     key_prefix=incident,
     question="Who are the :red[primary] impacted stakeholders?",
-    description=stakeholders_description,
+    description=stakeholders.description(),
     widget_cls=st.multiselect,
-    widget_kwargs=dict(options=stakeholders.keys(), default=None),
+    widget_kwargs=dict(options=stakeholders.values(), default=None),
     container=st.container(border=True),
     help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
-    + stakeholders_description,
+    + stakeholders.description(),
     show_descriptions=show_descriptions,
 )
-
 stop_condition(not impacted_stakeholders, SUBMIT_BUTTON_MESSAGE)
-
 results = {}
 
 for stakeholder in impacted_stakeholders:
@@ -240,23 +203,17 @@ for stakeholder in impacted_stakeholders:
 
     with right:
         harm_category_section = st.container(border=True)
-
-        harm_categories_description = ""
-        subset_harm_categories = harm_descriptions.loc[harm_categories.keys()].to_dict()
-        for k, v in subset_harm_categories.items():
-            harm_categories_description += f"- **{k}**: {v}\n"
-
         selected_harm_categories = display_question(
             key_prefix=incident + "_" + stakeholder,
             question=f"Which :violet[category] of harms impacts `{stakeholder}`? *(multiple options are possible)*",
-            description=harm_categories_description,
+            description=harms.description(),
             widget_cls=st.multiselect,
             widget_kwargs=dict(
-                options=list(harm_categories.keys()) + ["Other"],
+                options=harms.values(),
                 default=None,
             ),
             container=harm_category_section,
-            help_text=harm_categories_description,
+            help_text=harms.description(),
             show_descriptions=show_descriptions,
         )
 
@@ -276,41 +233,31 @@ for stakeholder in impacted_stakeholders:
                 container=harm_subcategories_container,
             )
         else:
-            harm_subcategories_description = ""
-            subset_harm_subcategories = harm_descriptions.loc[
-                harm_categories[harm_category]
-            ].to_dict()
-            for k, v in subset_harm_subcategories.items():
-                harm_subcategories_description += f"- **{k}**: {v}\n"
             selected_harm_subcategories = display_question(
                 key_prefix=harm_subcategories_prefix,
                 question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                description=harm_subcategories_description,
+                description=harms.description(harm_category),
                 widget_cls=st.multiselect,
                 widget_kwargs=dict(
-                    options=harm_categories[harm_category],
+                    options=harms.values(harm_category),
                     default=None,
                 ),
                 container=harm_subcategories_container,
-                help_text=harm_subcategories_description,
+                help_text=harms.description(),
                 show_descriptions=show_descriptions,
             )
 
-        harm_type_help_text = """
-        - **Actual harm**: _a negative impact recorded as having occurred_ in media reports, research papers, legal dockets, assessments/audits, etc, regarding or mentioning an incident (see below). Ideally, an actual harm will have been corroborated through public statements by the deployer or developer of the technology system, though this is not always the case.
-        - **Potential harm**: _a negative impact mentioned as being possible or likely but which is not recorded as having occurred_ in media reports, research papers, etc. A potential harm is sometimes referred to as a ‘risk’ or ‘hazard’ by journalists, risk managers, and others.
-        """
         harm_type = display_question(
             key_prefix=f"{incident}__{stakeholder}__{harm_category}",
             question=f"Is this `{harm_category}` harm on `{stakeholder}` actual or potential?",
-            description=harm_type_help_text,
+            description=harms.description("type"),
             widget_cls=st.selectbox,
             widget_kwargs=dict(
                 options=["Actual", "Potential"],
                 index=None,
             ),
             container=harm_subcategories_container,
-            help_text=harm_type_help_text,
+            help_text=harms.description("type"),
             show_descriptions=show_descriptions,
         )
 
