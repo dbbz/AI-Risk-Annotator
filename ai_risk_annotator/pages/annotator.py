@@ -49,6 +49,7 @@ except Exception as e:
 
 
 harms = Harms().download(conn)
+stakeholders = Stakeholders().download(conn)
 
 with st.sidebar:
     st.divider()
@@ -180,137 +181,136 @@ with st.container(border=False):
     )
 
 st.divider()
+results = []
 
-stakeholders = Stakeholders().download(conn)
-impacted_stakeholders = display_question(
+harm_category_section = st.container(border=True)
+selected_harm_categories = display_question(
     key_prefix=incident,
-    question="Who are the :red[primary] impacted stakeholders?",
-    description=stakeholders.description(),
+    question="Which :violet[category] of harms is incurred? *(multiple options are possible)*",
+    description=harms.description(),
     widget_cls=st.multiselect,
-    widget_kwargs=dict(options=stakeholders.values(), default=None),
-    container=st.container(border=True),
-    help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
-    + stakeholders.description(),
+    widget_kwargs=dict(
+        options=harms.values(),
+        default=None,
+    ),
+    container=harm_category_section,
+    help_text=harms.description(),
     show_descriptions=show_descriptions,
 )
-stop_condition(not impacted_stakeholders, SUBMIT_BUTTON_MESSAGE)
-results = {}
 
-for stakeholder in impacted_stakeholders:
+stop_condition(not selected_harm_categories, SUBMIT_BUTTON_MESSAGE)
+
+# results[stakeholder] = {}
+
+for harm_category in selected_harm_categories:
     left, right = st.columns((1, 35))
     left.write("↳")
-    results[stakeholder] = {}
+    harm_subcategories_prefix = f"{incident}__{harm_category}"
+    harm_subcategory_question = (
+        f"Which :violet[specific] `{harm_category}` harm is incurred?"
+    )
+    harm_subcategories_container = right.container(border=True)
 
-    with right:
-        harm_category_section = st.container(border=True)
-        selected_harm_categories = display_question(
-            key_prefix=incident + "_" + stakeholder,
-            question=f"Which :violet[category] of harms impacts `{stakeholder}`? *(multiple options are possible)*",
-            description=harms.description(),
+    if harm_category == "Other":
+        selected_harm_subcategories = display_question(
+            key_prefix=harm_subcategories_prefix,
+            question=harm_subcategory_question,
+            widget_cls=st.text_input,
+            container=harm_subcategories_container,
+        )
+        selected_harm_subcategories = [selected_harm_subcategories]
+    else:
+        selected_harm_subcategories = display_question(
+            key_prefix=harm_subcategories_prefix,
+            question=harm_subcategory_question + " *(multiple options are possible)*",
+            description=harms.description(harm_category),
             widget_cls=st.multiselect,
             widget_kwargs=dict(
-                options=harms.values(),
+                options=harms.values(harm_category),
                 default=None,
             ),
-            container=harm_category_section,
+            container=harm_subcategories_container,
             help_text=harms.description(),
             show_descriptions=show_descriptions,
         )
 
-    stop_condition(not selected_harm_categories, SUBMIT_BUTTON_MESSAGE)
+    harm_type = display_question(
+        key_prefix=f"{incident}__{harm_category}",
+        question=f"Is this `{harm_category}` harm actual or potential?",
+        description=harms.description("type"),
+        widget_cls=st.selectbox,
+        widget_kwargs=dict(
+            options=["Actual", "Potential"],
+            index=None,
+        ),
+        container=harm_subcategories_container,
+        help_text=harms.description("type"),
+        show_descriptions=show_descriptions,
+    )
 
-    for harm_category in selected_harm_categories:
+    stop_condition(
+        not selected_harm_subcategories or not harm_type, SUBMIT_BUTTON_MESSAGE
+    )
+
+    for harm_subcategory in selected_harm_subcategories:
         sub_left, sub_right = right.columns((1, 35))
         sub_left.write("↳")
-        harm_subcategories_container = sub_right.container(border=True)
-
-        harm_subcategories_prefix = f"{incident}__{stakeholder}__{harm_category}"
-        if harm_category == "Other":
-            selected_harm_subcategories = display_question(
-                key_prefix=harm_subcategories_prefix,
-                question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`?",
-                widget_cls=st.text_input,
-                container=harm_subcategories_container,
-            )
-        else:
-            selected_harm_subcategories = display_question(
-                key_prefix=harm_subcategories_prefix,
-                question=f"Which :orange[specific] `{harm_category}` harm impacts `{stakeholder}`? *(multiple options are possible)*",
-                description=harms.description(harm_category),
-                widget_cls=st.multiselect,
-                widget_kwargs=dict(
-                    options=harms.values(harm_category),
-                    default=None,
-                ),
-                container=harm_subcategories_container,
-                help_text=harms.description(),
-                show_descriptions=show_descriptions,
-            )
-
-        harm_type = display_question(
-            key_prefix=f"{incident}__{stakeholder}__{harm_category}",
-            question=f"Is this `{harm_category}` harm on `{stakeholder}` actual or potential?",
-            description=harms.description("type"),
-            widget_cls=st.selectbox,
-            widget_kwargs=dict(
-                options=["Actual", "Potential"],
-                index=None,
-            ),
-            container=harm_subcategories_container,
-            help_text=harms.description("type"),
+        stakeholder_container = sub_right.container(border=True)
+        impacted_stakeholders = display_question(
+            key_prefix=f"{incident}__{harm_category}__{harm_subcategory}",
+            question=f"Who are the :violet[impacted] stakeholders by `{harm_subcategory}`?",
+            description=stakeholders.description(),
+            widget_cls=st.multiselect,
+            widget_kwargs=dict(options=stakeholders.values(), default=None),
+            container=stakeholder_container,
+            help_text="External stakeholder (ie. not deployers or developers) individuals, groups, communities or entities using, being targeted by, or otherwise directly or indirectly negatively affected by a technology system. \n"
+            + stakeholders.description(),
             show_descriptions=show_descriptions,
         )
 
+        stop_condition(not impacted_stakeholders, SUBMIT_BUTTON_MESSAGE)
+
         notes = display_question(
-            key_prefix=f"{incident}__{stakeholder}__{harm_category}",
-            question="*[Optional]* Notes",
+            key_prefix=f"{incident}__{harm_category}__{harm_subcategory}",
+            question=f"*[Optional]* Any :violet[notes] on `{harm_subcategory}` and `{", ".join(impacted_stakeholders)}`?",
             widget_cls=st.text_area,
             widget_kwargs=dict(
                 placeholder="E.g. missing, overlapping or unclear harm type names or definitions."
             ),
-            container=harm_subcategories_container,
+            container=stakeholder_container,
         )
 
-        stop_condition(
-            not selected_harm_subcategories or not harm_type, SUBMIT_BUTTON_MESSAGE
-        )
-        results[stakeholder][harm_category] = (
-            selected_harm_subcategories,
-            notes,
-            harm_type,
-        )
+        for stakeholder in impacted_stakeholders:
+            results.append(
+                dict(
+                    datetime="",
+                    annotator=user,
+                    incident_ID=incident,
+                    stakeholders=stakeholder,
+                    harm_category=harm_category,
+                    harm_subcategory=harm_subcategory,
+                    harm_type=harm_type,
+                    notes=notes,
+                    timestamp="",
+                )
+            )
 
+### Submission
 submitted = st.button(
     SUBMIT_BUTTON_MESSAGE,
     type="primary",
     use_container_width=True,
 )
 
+### Upload
 if submitted:
     current_datetime = datetime.datetime.now()
     timestamp = int(current_datetime.timestamp())
-    date_format = "%Y-%m-%d"
-    current_datetime = current_datetime.strftime(date_format)
+    current_datetime = current_datetime.strftime("%Y-%m-%d")
 
-    tabular_results = []
-    for stakeholder, harm in results.items():
-        for harm_category, (harm_subcat_list, notes, harm_type) in harm.items():
-            for harm_subcat in harm_subcat_list:
-                tabular_results.append(
-                    [
-                        current_datetime,
-                        user,
-                        incident,
-                        stakeholder,
-                        harm_category,
-                        harm_subcat,
-                        harm_type,
-                        notes,
-                        timestamp,
-                    ]
-                )
-
-    df_update = pd.DataFrame(data=tabular_results, columns=columns)
+    df_update = pd.DataFrame(data=results, columns=columns)
+    df_update.datetime = current_datetime
+    df_update.timestamp = timestamp
 
     with st.spinner("Writing to Google Sheets..."):
         try:
