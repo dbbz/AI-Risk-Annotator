@@ -16,7 +16,7 @@ from utils import (
     create_side_menu,
     get_annotated_incidents,
     get_annotators,
-    get_incidents_list,
+    get_incidents_batch,
     load_extra_data,
     read_incidents_repository_from_file,
     scrap_incident_description,
@@ -86,26 +86,19 @@ with st.container(border=False):
     descriptions, links = load_extra_data()
 
     incidents_list = None
-    try:
-        incidents_list = get_incidents_list(conn)
-        incidents_list = set(incidents_list) & set(repository.index)
-        incidents_list = sorted(list(incidents_list), reverse=True)
-    except Exception as e:
-        st.toast("Cannot read the short-listed list of incidents from Google Sheets.")
-        st.toast(e)
+    if not st.sidebar.toggle("Show all incidents", False):
+        try:
+            incidents_list = get_incidents_batch(conn)
+            incidents_list = set(incidents_list) & set(repository.index)
+            incidents_list = sorted(list(incidents_list), reverse=True)
+        except Exception as e:
+            st.toast(
+                "Cannot read the short-listed list of incidents from Google Sheets."
+            )
+            st.toast(e)
 
     if not incidents_list:
-        # User the URL parameters to filter the incidents
-        # to be annotated
-        # eg. for <app_url>/?id=AIAAIC1366&id=AIAAIC1365
-        # only the incidents with the ids AIAAIC1366 and AIAAIC1365
-        # will be shown.
-        filtered_incidents = st.query_params.get_all("id")
-        if filtered_incidents and set(repository.index) & set(filtered_incidents):
-            incidents_list = set(repository.index) & set(filtered_incidents)
-            incidents_list = sorted(list(filtered_incidents), reverse=True)
-        else:
-            incidents_list = sorted(list(repository.index), reverse=True)
+        incidents_list = sorted(list(repository.index), reverse=True)
 
     st.markdown("Select an incident")
 
@@ -132,13 +125,6 @@ with st.container(border=False):
         }
 
     current_incident_position = st.session_state.get("current_incident_position", None)
-    if current_incident_position is not None and st.session_state.get(
-        "form_submitted", False
-    ):
-        current_incident_position += 1
-        current_incident_position %= len(incidents_list)
-        st.session_state.form_submitted = False
-
     if len(incidents_list) <= 10:
         incident = st.radio(
             "incident",
@@ -163,7 +149,6 @@ with st.container(border=False):
             st.caption(ANNOTATED_CAPTION)
     if not incident:
         st.stop()
-    st.session_state.current_incident_position = incidents_list.index(incident)
 
 st.divider()
 
@@ -197,10 +182,7 @@ selected_harm_categories = display_question(
     help_text=harms.description(),
     show_descriptions=show_descriptions,
 )
-
 stop_condition(not selected_harm_categories, SUBMIT_BUTTON_MESSAGE)
-
-# results[stakeholder] = {}
 
 for harm_category in selected_harm_categories:
     left, right = st.columns((1, 35))
@@ -272,7 +254,7 @@ for harm_category in selected_harm_categories:
 
         notes = display_question(
             key_prefix=f"{incident}__{harm_category}__{harm_subcategory}",
-            question=f"*[Optional]* Any :violet[notes] on `{harm_subcategory}` and `{", ".join(impacted_stakeholders)}`?",
+            question=f"*[Optional]* Any :violet[notes] on `{harm_subcategory}` and `{', '.join(impacted_stakeholders)}`?",
             widget_cls=st.text_area,
             widget_kwargs=dict(
                 placeholder="E.g. missing, overlapping or unclear harm type names or definitions."
@@ -351,8 +333,6 @@ if submitted:
     )
 
     st.session_state.submitted_incidents[user][incident] = ANNOTATED_CAPTION
-    st.session_state.form_submitted = True
     st.session_state.current_user = annotators.index(user)
 
-    # st.rerun()
     switch_page("thanks")

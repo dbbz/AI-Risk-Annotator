@@ -304,7 +304,7 @@ def get_harm_descriptions(_conn):
 @st.cache_data(
     ttl=TTL, show_spinner="Reading the incidents short-list from Google Sheets..."
 )
-def get_incidents_list(_conn):
+def get_incidents_batch(_conn):
     df_shortlist = (
         _conn.read(worksheet="Batches", ttl=0)
         .dropna(how="all", axis=0)
