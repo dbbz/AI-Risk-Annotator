@@ -17,7 +17,6 @@ from utils import (
     get_annotated_incidents,
     get_annotators,
     get_incidents_batch,
-    load_extra_data,
     read_incidents_repository_from_file,
     scrap_incident_description,
     switch_page,
@@ -83,8 +82,6 @@ with st.container(border=False):
         st.stop()
 
     repository = read_incidents_repository_from_file()
-    descriptions, links = load_extra_data()
-
     incidents_list = None
     if not st.sidebar.toggle("Show all incidents", False):
         try:
