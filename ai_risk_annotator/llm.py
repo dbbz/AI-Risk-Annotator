@@ -3,6 +3,8 @@ import pandas as pd
 import streamlit as st
 from trafilatura import extract, fetch_url
 
+TTL = 30 * 60 * 24
+
 
 def build_llm_selection():
     try:
@@ -27,7 +29,7 @@ def build_llm_selection():
         selected_llm = st.selectbox(
             "Choose an LLM",
             available_llms,
-            index=available_llms.index("phi:latest"),
+            index=available_llms.index("llama3.1:latest"),
             label_visibility="collapsed",
             key="selected_llm",
         )
@@ -77,7 +79,7 @@ def stream_chat(model, messages):
     return response
 
 
-@st.cache_data(ttl=3600, show_spinner="Parsing the downlaoded web page...")
+@st.cache_data(ttl=TTL, show_spinner="Parsing the downlaoded web page...")
 def extract_content(links_list, WORD_LIMIT):
     pages = [fetch_url(link) for link in links_list]
     results = [extract(page, include_comments=False) for page in pages]
@@ -96,19 +98,23 @@ def call_ollama_chat(selected_llm, prompt, store_prompt=True, write_answer=True)
         {"role": "user", "content": prompt, "show": store_prompt}
     )
     try:
-        response_generator = (
-            chunk["message"]["content"]
-            for chunk in ollama.chat(
-                model=selected_llm,
-                messages=st.session_state.chat_history[selected_llm],
-                stream=True,
-            )
-        )
-
         if write_answer:
+            response_generator = (
+                chunk["message"]["content"]
+                for chunk in ollama.chat(
+                    model=selected_llm,
+                    messages=st.session_state.chat_history[selected_llm],
+                    stream=True,
+                )
+            )
             with st.chat_message("assistant"):
                 response = st.write_stream(response_generator)
-
+        else:
+            response = ollama.chat(
+                model=selected_llm,
+                messages=st.session_state.chat_history[selected_llm],
+                stream=False,
+            )["message"]["content"]
         st.session_state.chat_history[selected_llm].append(
             {"role": "assistant", "content": response, "show": store_prompt}
         )
