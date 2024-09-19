@@ -9,7 +9,7 @@ import streamlit as st
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
-TTL = 30 * 60
+TTL = 30 * 60 * 24
 
 
 def create_side_menu():
@@ -201,6 +201,7 @@ def scrap_incident_description(link):
     return description
 
 
+# deprecated
 def get_deepest_text(tag):
     if tag.string:
         return tag.string.strip()  # Return text if it's a text node
@@ -214,6 +215,7 @@ def get_deepest_text(tag):
     return None
 
 
+# deprecated
 @st.cache_data(ttl=TTL, show_spinner="Fetching the list of links on the incident...")
 def get_list_of_media_links(page_url):
     soup = BeautifulSoup(requests.get(page_url).text, "html.parser")
